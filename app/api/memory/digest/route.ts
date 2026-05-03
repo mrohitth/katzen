@@ -19,10 +19,14 @@ interface Digest {
   };
 }
 
-function parseTasks(content: string): { completed: string[]; pending: string[] } {
+/**
+ * Parse ALL tasks from ALL ## Tasks sections in a memory log.
+ * A file may have multiple ## Tasks sections if tasks were appended throughout the day.
+ */
+function parseAllTasks(content: string): { completed: string[]; pending: string[] } {
+  const allCompleted: string[] = [];
+  const allPending: string[] = [];
   const lines = content.split("\n");
-  const completed: string[] = [];
-  const pending: string[] = [];
   let inTasks = false;
 
   for (const line of lines) {
@@ -30,16 +34,19 @@ function parseTasks(content: string): { completed: string[]; pending: string[] }
       inTasks = true;
       continue;
     }
-    if (line.match(/^##\s+/) && inTasks) break;
+    if (line.match(/^##\s+/) && inTasks) {
+      inTasks = false;
+      continue;
+    }
     if (inTasks) {
       const doneMatch = line.match(/^-\s+\[x\]\s+(.+)/i);
       const pendingMatch = line.match(/^-\s+\[\s\]\s+(.+)/i);
-      if (doneMatch) completed.push(doneMatch[1].trim());
-      else if (pendingMatch) pending.push(pendingMatch[1].trim());
+      if (doneMatch) allCompleted.push(doneMatch[1].trim());
+      else if (pendingMatch) allPending.push(pendingMatch[1].trim());
     }
   }
 
-  return { completed, pending };
+  return { completed: allCompleted, pending: allPending };
 }
 
 function getYesterdayDate(): string {
@@ -68,11 +75,14 @@ export async function GET() {
 
     if (logPath) {
       const content = fs.readFileSync(logPath, "utf-8");
-      const { completed: doneTasks, pending: pendingTasks } = parseTasks(content);
-      completed = doneTasks.length;
-      pending = pendingTasks.length;
-      achieved = doneTasks.slice(0, 3);
-      fellThrough = pendingTasks.slice(0, 2);
+      const { completed: doneTasks, pending: pendingTasks } = parseAllTasks(content);
+      // Dedupe (same task may appear in multiple ## Tasks sections)
+      const uniqueDone = [...new Set(doneTasks)];
+      const uniquePending = [...new Set(pendingTasks)];
+      completed = uniqueDone.length;
+      pending = uniquePending.length;
+      achieved = uniqueDone.slice(0, 3);
+      fellThrough = uniquePending.slice(0, 2);
     }
 
     // Generate summary
