@@ -53,8 +53,10 @@ function parseTasksFromContent(content: string): {
 
 function getLastNDays(n: number): string[] {
   const dates: string[] = [];
-  for (let i = 1; i <= n; i++) {
-    const d = new Date();
+  const today = new Date();
+  // Include today (index 0) and the previous n-1 days
+  for (let i = 0; i < n; i++) {
+    const d = new Date(today);
     d.setDate(d.getDate() - i);
     dates.push(d.toISOString().split("T")[0]);
   }
