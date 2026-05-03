@@ -44,6 +44,24 @@ export default function TaskBoard({ initialTasks, initialDate }: TaskBoardProps)
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [tooltipContent, setTooltipContent] = useState<SearchResult | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [lastFetchAt, setLastFetchAt] = useState<number>(Date.now());
+
+  // Refresh tasks when window regains focus (catches changes from other sessions/cron)
+  useEffect(() => {
+    const handleFocus = () => {
+      fetch("/api/tasks")
+        .then((r) => r.json())
+        .then((data) => {
+          if (!data.error && data.tasks) {
+            setTasks(data.tasks);
+            setLastFetchAt(Date.now());
+          }
+        })
+        .catch(console.error);
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, []);
 
   const addToast = useCallback((message: string) => {
     const id = ++toastIdRef.current;
@@ -382,8 +400,16 @@ export default function TaskBoard({ initialTasks, initialDate }: TaskBoardProps)
                             {task.content}
                           </p>
                           {task.completedAt && (
-                            <span className="text-text-muted text-xs font-mono opacity-60">
-                              {new Date(task.completedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            <span
+                              className="text-text-muted text-xs font-mono opacity-70 flex-shrink-0"
+                              title={new Date(task.completedAt).toLocaleString()}
+                            >
+                              {new Date(task.completedAt).toLocaleString([], {
+                                month: "short",
+                                day: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
                             </span>
                           )}
                           <button

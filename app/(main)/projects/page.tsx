@@ -18,7 +18,6 @@ import {
   Zap,
   DollarSign,
   PieChart,
-  Cpu,
   Radio,
 } from "lucide-react";
 
@@ -74,22 +73,23 @@ interface Holding {
   name: string;
   shares: number | null;
   avgCost: number | null;
+  currentPrice: number | null;
   allocation: number; // percentage
   type: "BROAD_INDEX" | "AI_CHIP" | "SEMI_ETF" | "GROWTH_ETF" | "DIVIDEND_ETF" | "INTL_ETF" | "SPECULATIVE";
   color: string;
 }
 
 const HOLDINGS: Holding[] = [
-  { symbol: "VTI",  name: "Vanguard Total Stock Market", shares: 34,   avgCost: 230.97, allocation: 20.2, type: "BROAD_INDEX",   color: "#6366F1" },
-  { symbol: "NVDA", name: "NVIDIA",                    shares: 41.6, avgCost: 203.11, allocation: 18.9, type: "AI_CHIP",        color: "#4ADE80" },
-  { symbol: "VOO",  name: "Vanguard S&P 500 ETF",     shares: 17.1, avgCost: 402.90, allocation: 17.6, type: "BROAD_INDEX",   color: "#818CF8" },
-  { symbol: "QQQ",  name: "Invesco QQQ Trust",        shares: 9.4,  avgCost: 596.86, allocation: 14.4, type: "GROWTH_ETF",    color: "#38BDF8" },
-  { symbol: "SMH",  name: "VanEck Semiconductor ETF", shares: 8.1,  avgCost: 503.28, allocation: 9.5,  type: "SEMI_ETF",      color: "#A78BFA" },
-  { symbol: "SCHG", name: "Schwab US Large-Cap Growth",shares: 102.4, avgCost: 30.01, allocation: 7.8, type: "GROWTH_ETF",    color: "#FBBF24" },
-  { symbol: "VXUS", name: "Vanguard Total International",shares: 29.7, avgCost: 73.16, allocation: 5.6, type: "INTL_ETF",     color: "#F472B6" },
-  { symbol: "SCHD", name: "Schwab US Dividend Equity", shares: 75.2, avgCost: 29.35, allocation: 5.5, type: "DIVIDEND_ETF",  color: "#34D399" },
-  { symbol: "SPYD", name: "SPDR S&P 500 High Dividend",shares: 3.7,  avgCost: 40.72, allocation: 0.4,  type: "DIVIDEND_ETF",  color: "#FB923C" },
-  { symbol: "ASTS", name: "AST Spacemobile",          shares: 8.7,  avgCost: 11.42, allocation: 0.2,  type: "SPECULATIVE",   color: "#EF4444" },
+  { symbol: "VTI",  name: "Vanguard Total Stock Market",     shares: 34,    avgCost: 230.97, currentPrice: 260.00,  allocation: 20.2, type: "BROAD_INDEX",    color: "#6366F1" },
+  { symbol: "NVDA", name: "NVIDIA",                         shares: 41.6,  avgCost: 203.11, currentPrice: 198.45,  allocation: 18.9, type: "AI_CHIP",        color: "#4ADE80" },
+  { symbol: "VOO",  name: "Vanguard S&P 500 ETF",           shares: 17.1,  avgCost: 402.90, currentPrice: 450.00,  allocation: 17.6, type: "BROAD_INDEX",    color: "#818CF8" },
+  { symbol: "QQQ",  name: "Invesco QQQ Trust",              shares: 9.4,   avgCost: 596.86, currentPrice: 674.15,  allocation: 14.4, type: "GROWTH_ETF",    color: "#38BDF8" },
+  { symbol: "SMH",  name: "VanEck Semiconductor ETF",       shares: 8.1,   avgCost: 503.28, currentPrice: 509.82,  allocation: 9.5,  type: "SEMI_ETF",      color: "#A78BFA" },
+  { symbol: "SCHG", name: "Schwab US Large-Cap Growth",     shares: 102.4, avgCost: 30.01,  currentPrice: 33.14,   allocation: 7.8,  type: "GROWTH_ETF",    color: "#FBBF24" },
+  { symbol: "VXUS", name: "Vanguard Total International",   shares: 29.7,  avgCost: 73.16,  currentPrice: 82.97,   allocation: 5.6,  type: "INTL_ETF",      color: "#F472B6" },
+  { symbol: "SCHD", name: "Schwab US Dividend Equity",     shares: 75.2,  avgCost: 29.35,  currentPrice: 31.86,   allocation: 5.5,  type: "DIVIDEND_ETF",  color: "#34D399" },
+  { symbol: "SPYD", name: "SPDR S&P 500 High Dividend",    shares: 3.7,   avgCost: 40.72,  currentPrice: 45.00,   allocation: 0.4,  type: "DIVIDEND_ETF",  color: "#FB923C" },
+  { symbol: "ASTS", name: "AST Spacemobile",               shares: 8.7,   avgCost: 11.42,  currentPrice: 10.00,   allocation: 0.2,  type: "SPECULATIVE",   color: "#EF4444" },
 ];
 
 export default function ProjectsPage() {
@@ -147,11 +147,18 @@ export default function ProjectsPage() {
         return;
       }
 
-      const minutes = Math.floor(diff / 60000);
-      const seconds = Math.floor((diff % 60000) / 1000);
-      setCountdown(
-        `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
-      );
+      const totalSeconds = Math.floor(diff / 1000);
+      const hours = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      let display: string;
+      if (hours > 0) {
+        display = `${hours}h ${minutes.toString().padStart(2, "0")}m`;
+      } else {
+        display = `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+      }
+      setCountdown(display);
     };
 
     updateCountdown();
@@ -199,9 +206,23 @@ export default function ProjectsPage() {
     };
   };
 
-  // Portfolio summary
+  // Portfolio P/L helpers
   const totalValue = 43757.84;
-  const totalGain = 3027.95;
+  const totalCostBasis = HOLDINGS.reduce((s, h) => s + (h.shares ?? 0) * (h.avgCost ?? 0), 0);
+  const totalGain = totalValue - totalCostBasis;
+  const totalGainPct = totalCostBasis > 0 ? (totalGain / totalCostBasis * 100) : 0;
+  const costBasisPct = totalValue > 0 ? (totalCostBasis / totalValue * 100) : 50;
+
+  function getHoldingGL(h: typeof HOLDINGS[0]): number {
+    const mktVal = (h.shares ?? 0) * (h.avgCost ?? 0);
+    const gl = mktVal > 0 ? ((h.currentPrice ?? 0) - (h.avgCost ?? 0)) / (h.avgCost ?? 1) * mktVal : 0;
+    return gl;
+  }
+
+  function glPct(h: typeof HOLDINGS[0]): number {
+    if (!h.avgCost || !h.currentPrice) return 0;
+    return ((h.currentPrice - h.avgCost) / h.avgCost) * 100;
+  }
 
   return (
     <div className="p-8 pb-24">
@@ -262,95 +283,84 @@ export default function ProjectsPage() {
         <Card className="bg-obsidian-light border-border rounded-xl p-5 glow-violet">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-8 h-8 rounded-lg bg-violet/10 flex items-center justify-center">
-              <PieChart className="w-4 h-4 text-violet" />
+              <TrendingUp className="w-4 h-4 text-violet" />
             </div>
             <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider">
-              Portfolio Health
+              Portfolio P/L
             </h2>
             <Badge variant="secondary" className="bg-violet/10 text-violet border-violet/20 font-mono text-xs">
-              AI/SEMI FOCUS
+              {HOLDINGS.length} POSITIONS
             </Badge>
           </div>
 
-          {/* Allocation Bar */}
-          <div className="space-y-3">
-            <div className="h-3 bg-obsidian rounded-full overflow-hidden flex">
-              {HOLDINGS.map((h) => (
-                <div
-                  key={h.symbol}
-                  className="h-full transition-all duration-500"
-                  style={{
-                    width: `${h.allocation}%`,
-                    backgroundColor: h.color,
-                  }}
-                  title={`${h.symbol}: ${h.allocation}%`}
-                />
-              ))}
+          {/* Big P/L Summary */}
+          <div className="flex items-end gap-4 mb-4">
+            <div>
+              <p className="text-text-muted text-xs mb-1">Total Value</p>
+              <p className="text-2xl font-mono text-text-primary font-semibold">
+                ${totalValue.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              </p>
             </div>
-
-            {/* Holdings Breakdown */}
-            <div className="space-y-2">
-              {HOLDINGS.map((h) => {
-                const market = getHoldingWithMarket(h.symbol);
-                return (
-                  <div key={h.symbol} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: h.color }}
-                      />
-                      <span className="text-text-primary text-sm font-mono">
-                        {h.symbol}
-                      </span>
-                      <span className="text-text-muted text-xs">
-                        {h.allocation}%
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {market.price > 0 && (
-                        <>
-                          <span className="text-text-primary text-sm font-mono">
-                            ${market.price.toFixed(2)}
-                          </span>
-                          <span
-                            className={`text-xs font-mono ${
-                              market.change >= 0 ? "text-moss" : "text-amber"
-                            }`}
-                          >
-                            {market.change >= 0 ? "+" : ""}
-                            {market.changePercent.toFixed(2)}%
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Category Summary */}
-            <div className="flex items-center gap-4 pt-2 border-t border-border/50 flex-wrap">
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-0.5 bg-indigo-500" />
-                <span className="text-text-muted text-xs">Broad Index: 38%</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Cpu className="w-3 h-3 text-moss" />
-                <span className="text-text-muted text-xs">AI Chip: 19%</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-0.5 bg-sky-400" />
-                <span className="text-text-muted text-xs">Tech: 14%</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-0.5 bg-violet" />
-                <span className="text-text-muted text-xs">Semi: 10%</span>
-              </div>
-            </div>
-            <div className="mt-2 text-text-muted text-xs">
-              Total Value: $43,757.84 | Day: -0.25% | 10 positions
+            <div className="mb-1">
+              <p className="text-text-muted text-xs mb-1">Unrealized G/L</p>
+              <p className={`text-xl font-mono font-semibold ${totalGain >= 0 ? "text-moss" : "text-amber"}`}>
+                {totalGain >= 0 ? "+" : ""}${totalGain.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                <span className="text-sm ml-1">({totalGainPct}%)</span>
+              </p>
             </div>
           </div>
+
+          {/* P/L Bar — cost basis to current */}
+          <div className="mb-4">
+            <div className="flex justify-between text-xs text-text-muted mb-1">
+              <span>Cost Basis</span>
+              <span>Current Value</span>
+            </div>
+            <div className="h-4 bg-obsidian rounded-lg overflow-hidden relative">
+              {/* Cost basis marker */}
+              <div
+                className="absolute top-0 left-0 h-full bg-amber/60"
+                style={{ width: `${costBasisPct}%` }}
+                title={`Cost basis: $${(totalValue - totalGain).toFixed(0)}`}
+              />
+              {/* Current value marker */}
+              <div
+                className="absolute top-0 left-0 h-full bg-moss/80"
+                style={{ width: "100%" }}
+                title={`Current value: $${totalValue.toFixed(0)}`}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-text-muted mt-1">
+              <span>${(totalValue - totalGain).toLocaleString("en-US", { minimumFractionDigits: 0 })}</span>
+              <span>${totalValue.toLocaleString("en-US", { minimumFractionDigits: 0 })}</span>
+            </div>
+          </div>
+
+          {/* Per-position G/L mini bars */}
+          <div className="space-y-1.5">
+            {HOLDINGS.slice(0, 8).map((h) => {
+              const gl = getHoldingGL(h);
+              const isGain = gl >= 0;
+              const absPct = Math.abs(glPct(h));
+              return (
+                <div key={h.symbol} className="flex items-center gap-2">
+                  <span className="text-text-primary text-xs font-mono w-10">{h.symbol}</span>
+                  <div className="flex-1 h-1.5 bg-obsidian rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${isGain ? "bg-moss" : "bg-amber"}`}
+                      style={{ width: `${Math.min(absPct * 2, 100)}%` }}
+                    />
+                  </div>
+                  <span className={`text-xs font-mono w-16 text-right ${isGain ? "text-moss" : "text-amber"}`}>
+                    {isGain ? "+" : ""}{glPct(h).toFixed(1)}%
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-text-muted text-xs mt-3">
+            Total G/L: {totalGain >= 0 ? "+" : ""}${totalGain.toLocaleString("en-US", { minimumFractionDigits: 2 })} ({totalGainPct}%) — {totalGain >= 0 ? "up" : "down"} overall
+          </p>
         </Card>
       </div>
 
