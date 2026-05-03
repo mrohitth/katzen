@@ -27,6 +27,9 @@ interface Alert {
   source: string;
   agent: string;
   status_code: string;
+  model?: string;
+  grouped?: boolean;
+  count?: number;
 }
 
 interface Idea {
@@ -90,6 +93,7 @@ function CyberGridCard({ alert, index }: { alert: Alert; index: number }) {
             }`}
           >
             [{alert.agent}] [{alert.status_code}]
+            {alert.model && <span className="text-violet/60 ml-1">[Model: {alert.model}]</span>}
           </Badge>
         </div>
         <p className="text-sm text-text-primary leading-relaxed">{alert.message}</p>
