@@ -101,7 +101,7 @@ export default function AgentStatusHUD() {
         </span>
       </div>
 
-      {/* Active Mission - Top Pending Task with amber pulse */}
+      {/* Active Mission - Top Pending Task with agent prefix */}
       <div className="flex items-center gap-1.5">
         {data.topTask ? (
           <>
@@ -112,7 +112,7 @@ export default function AgentStatusHUD() {
               </div>
             </div>
             <span className="text-xs font-mono text-amber max-w-[180px] truncate" title={data.topTask.content}>
-              {data.topTask.content}
+              [{data.topTask.assigned || "K"}] {data.topTask.content}
             </span>
           </>
         ) : (

@@ -6,6 +6,7 @@ const WORKSPACE = process.env.OPENCLAW_WORKSPACE || "/home/mathew/.openclaw/work
 export interface Task {
   content: string;
   status: "pending" | "done";
+  assigned?: "K" | "T" | "B"; // Kitty, Titty, Bitty
 }
 
 export async function getDailyTasks(): Promise<{ tasks: Task[]; dateStr: string }> {
@@ -43,11 +44,12 @@ export function parseTasksFromMarkdown(content: string): Task[] {
 
     if (inTasksSection) {
       // Parse - [ ] or - [x]
-      const match = line.match(/^-\s+\[(x| )\]\s+(.+)/i);
+      const match = line.match(/^-\s+\[(x| )\]\s+(?:\[([KTB])\]\s+)?(.+)/i);
       if (match) {
         tasks.push({
           status: match[1].toLowerCase() === "x" ? "done" : "pending",
-          content: match[2].trim(),
+          assigned: match[2]?.toUpperCase() as "K" | "T" | "B" | undefined,
+          content: match[3].trim(),
         });
       }
     }
@@ -102,7 +104,10 @@ export async function getWorkspaceProjects(): Promise<
     }));
 }
 
-export async function addTaskToDailyLog(taskContent: string): Promise<void> {
+export async function addTaskToDailyLog(
+  taskContent: string,
+  assigned?: "K" | "T" | "B"
+): Promise<void> {
   const today = new Date();
   const dateStr = today.toISOString().split("T")[0];
   const dailyLogPath = path.join(WORKSPACE, "memory", `${dateStr}.md`);
@@ -157,8 +162,9 @@ export async function addTaskToDailyLog(taskContent: string): Promise<void> {
     }
   }
 
-  // Build the new task line
-  const newTaskLine = `- [ ] ${taskContent}`;
+  // Build the new task line with optional agent prefix
+  const agentPrefix = assigned ? `[${assigned}] ` : "";
+  const newTaskLine = `- [ ] ${agentPrefix}${taskContent}`;
 
   // Insert the new task
   lines.splice(insertAfterIndex + 1, 0, newTaskLine);

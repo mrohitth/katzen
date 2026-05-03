@@ -9,15 +9,19 @@ const WORKSPACE = process.env.OPENCLAW_WORKSPACE || "/home/mathew/.openclaw/work
 
 interface TaskSummary {
   date: string;
-  completed: string[];
-  pending: string[];
+  completed: { content: string; agent?: string }[];
+  pending: { content: string; agent?: string }[];
   total: number;
+  agentContributions: Record<string, number>;
 }
 
-function parseTasksFromContent(content: string): { completed: string[]; pending: string[] } {
+function parseTasksFromContent(content: string): { 
+  completed: { content: string; agent?: string }[]; 
+  pending: { content: string; agent?: string }[];
+} {
   const lines = content.split("\n");
-  const completed: string[] = [];
-  const pending: string[] = [];
+  const completed: { content: string; agent?: string }[] = [];
+  const pending: { content: string; agent?: string }[] = [];
   let inTasks = false;
 
   for (const line of lines) {
@@ -27,10 +31,20 @@ function parseTasksFromContent(content: string): { completed: string[]; pending:
     }
     if (line.match(/^##\s+/) && inTasks) break;
     if (inTasks) {
-      const doneMatch = line.match(/^-\s+\[x\]\s+(.+)/i);
-      const pendingMatch = line.match(/^-\s+\[\s]\s+(.+)/i);
-      if (doneMatch) completed.push(doneMatch[1].trim());
-      else if (pendingMatch) pending.push(pendingMatch[1].trim());
+      // Parse with optional [K], [T], [B] agent prefix
+      const doneMatch = line.match(/^-\s+\[x\]\s+(?:\[([KTB])\]\s+)?(.+)/i);
+      const pendingMatch = line.match(/^-\s+\[\s]\s+(?:\[([KTB])\]\s+)?(.+)/i);
+      if (doneMatch) {
+        completed.push({
+          content: doneMatch[2].trim(),
+          agent: doneMatch[1]?.toUpperCase()
+        });
+      } else if (pendingMatch) {
+        pending.push({
+          content: pendingMatch[2].trim(),
+          agent: pendingMatch[1]?.toUpperCase()
+        });
+      }
     }
   }
 
@@ -47,7 +61,32 @@ function getLastNDays(n: number): string[] {
   return dates;
 }
 
-function generateWeeklyReport(taskSummaries: TaskSummary[]): string {
+function tallyAgentContributions(taskSummaries: TaskSummary[]): Record<string, number> {
+  const contributions: Record<string, number> = {
+    "K": 0, // Kitty
+    "T": 0, // Titty
+    "B": 0, // Bitty
+  };
+  
+  const agentNames: Record<string, string> = {
+    "K": "Kitty",
+    "T": "Titty",
+    "B": "Bitty",
+  };
+
+  for (const day of taskSummaries) {
+    for (const task of day.completed) {
+      const agent = task.agent || "K";
+      if (contributions[agent] !== undefined) {
+        contributions[agent]++;
+      }
+    }
+  }
+
+  return contributions;
+}
+
+function generateWeeklyReport(taskSummaries: TaskSummary[], agentContributions: Record<string, number>): string {
   const totalTasks = taskSummaries.reduce((sum, t) => sum + t.total, 0);
   const totalCompleted = taskSummaries.reduce((sum, t) => sum + t.completed.length, 0);
   const totalPending = taskSummaries.reduce((sum, t) => sum + t.pending.length, 0);
@@ -56,8 +95,14 @@ function generateWeeklyReport(taskSummaries: TaskSummary[]): string {
   const allPending = taskSummaries.flatMap((t) => t.pending);
   
   // Dedupe completed tasks
-  const uniqueCompleted = [...new Set(allCompleted)];
-  const uniquePending = [...new Set(allPending)];
+  const uniqueCompleted = [...new Set(allCompleted.map((t) => t.content))];
+  const uniquePending = [...new Set(allPending.map((t) => t.content))];
+
+  const agentNames: Record<string, string> = {
+    "K": "Kitty",
+    "T": "Titty",
+    "B": "Bitty",
+  };
 
   let report = `# Weekly Agent Report\n\n`;
   report += `Generated: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}\n\n`;
@@ -66,6 +111,15 @@ function generateWeeklyReport(taskSummaries: TaskSummary[]): string {
   report += `- **Total Tasks Tracked:** ${totalTasks}\n`;
   report += `- **Completed:** ${totalCompleted} (${totalTasks > 0 ? Math.round((totalCompleted / totalTasks) * 100) : 0}%)\n`;
   report += `- **Pending:** ${totalPending}\n\n`;
+
+  report += `## Contributions by Agent\n\n`;
+  report += `| Agent | Completed |\n`;
+  report += `|-------|-----------|\n`;
+  for (const [agent, count] of Object.entries(agentContributions)) {
+    const name = agentNames[agent] || agent;
+    report += `| ${name} [${agent}] | ${count} |\n`;
+  }
+  report += `\n`;
 
   report += `## Focus Areas This Week\n\n`;
   if (uniqueCompleted.length > 0) {
@@ -90,13 +144,15 @@ function generateWeeklyReport(taskSummaries: TaskSummary[]): string {
     if (day.completed.length > 0) {
       report += `**Done:** ${day.completed.length}\n`;
       day.completed.forEach((t) => {
-        report += `- ~~${t}~~\n`;
+        const prefix = t.agent ? `[${t.agent}] ` : '';
+        report += `- ~~${prefix}${t.content}~~\n`;
       });
     }
     if (day.pending.length > 0) {
       report += `**Pending:** ${day.pending.length}\n`;
       day.pending.forEach((t) => {
-        report += `- ${t}\n`;
+        const prefix = t.agent ? `[${t.agent}] ` : '';
+        report += `- ${prefix}${t.content}\n`;
       });
     }
     if (day.completed.length === 0 && day.pending.length === 0) {
@@ -123,8 +179,8 @@ export async function GET() {
     }
 
     const taskSummaries: TaskSummary[] = [];
-    const recentTasks: string[] = [];
-    const recentPending: string[] = [];
+    const recentTasks: { content: string; agent?: string }[] = [];
+    const recentPending: { content: string; agent?: string }[] = [];
 
     for (const date of dates) {
       const filePath = path.join(memoryDir, `${date}.md`);
@@ -136,20 +192,24 @@ export async function GET() {
           completed,
           pending,
           total: completed.length + pending.length,
+          agentContributions: {},
         });
         
         // Track recent unique tasks
         completed.forEach((t) => {
-          if (!recentTasks.includes(t)) recentTasks.push(t);
+          if (!recentTasks.some((rt) => rt.content === t.content)) recentTasks.push(t);
         });
         pending.forEach((t) => {
-          if (!recentPending.includes(t)) recentPending.push(t);
+          if (!recentPending.some((rp) => rp.content === t.content)) recentPending.push(t);
         });
       }
     }
 
-    // Generate report
-    const report = generateWeeklyReport(taskSummaries);
+    // Tally agent contributions
+    const agentContributions = tallyAgentContributions(taskSummaries);
+
+    // Generate report with agent attribution
+    const report = generateWeeklyReport(taskSummaries, agentContributions);
 
     // Write to docs
     const today = new Date().toISOString().split("T")[0];
@@ -166,6 +226,7 @@ export async function GET() {
         totalTasks: taskSummaries.reduce((s, t) => s + t.total, 0),
         completedCount: recentTasks.length,
         pendingCount: recentPending.length,
+        agentContributions,
       },
       toastMessage: `[KITTY]: New documentation indexed: ${filename}`,
     });
