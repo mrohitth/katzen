@@ -30,18 +30,37 @@ export async function PATCH(request: Request) {
     const manifest = JSON.parse(readFileSync(MANIFEST_PATH, "utf-8"));
 
     if (body.action === "add_alert") {
-      const alert = {
+      const entry: any = {
         id: `alert-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        agent: body.agent ?? body.source ?? "SYSTEM",
+        status_code: body.status_code ?? "OK",
         type: body.type ?? "system",
         severity: body.severity ?? "info",
         message: body.message,
-        timestamp: new Date().toISOString(),
         source: body.source ?? "SYSTEM",
       };
       manifest.alerts_history = manifest.alerts_history ?? [];
-      manifest.alerts_history.unshift(alert);
-      // Keep last 100 alerts
-      manifest.alerts_history = manifest.alerts_history.slice(0, 100);
+      manifest.alerts_history.unshift(entry);
+      // Keep last 100 — auto-archive oldest 50 when exceeding limit
+      if (manifest.alerts_history.length > 100) {
+        const archive = manifest.alerts_history.slice(50);
+        manifest.alerts_history = manifest.alerts_history.slice(0, 50);
+        try {
+          const { writeFileSync, mkdirSync, existsSync } = await import("fs");
+          const archiveDir = "/home/mathew/.openclaw/workspace/wiki/logs/archive";
+          if (!existsSync(archiveDir)) mkdirSync(archiveDir, { recursive: true });
+          const archivePath = `${archiveDir}/alerts_May2026.md`;
+          const ts = new Date().toISOString();
+          const lines = archive.map((a: any) =>
+            `[${a.timestamp}] [${a.agent}] [${a.status_code}] ${a.message}`
+          ).join("\n");
+          const header = existsSync(archivePath)
+            ? ""
+            : `# Alerts Archive — May 2026\n\n*Auto-archived from manifest.json alerts_history*\n\n`;
+          writeFileSync(archivePath, header + lines + "\n", { flag: "a" });
+        } catch { /* archive write failed — continue */ }
+      }
     } else if (body.action === "add_idea") {
       const idea = {
         id: `idea-${Date.now()}`,
@@ -49,6 +68,7 @@ export async function PATCH(request: Request) {
         title: body.title,
         description: body.description ?? "",
         status: "proposed",
+        complexity_index: body.complexity_index ?? 3,
         proposed_at: new Date().toISOString(),
         votes: 0,
       };
