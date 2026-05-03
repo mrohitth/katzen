@@ -1,12 +1,12 @@
 {
   "schema_version": "2.0",
-  "last_updated": "2026-05-03T20:10:00.000Z",
+  "last_updated": "2026-05-03T21:06:06.053Z",
   "recent_activity": [
     {
       "filename": "Gateway_Router_Implementation.md",
       "filepath": "/home/mathew/.openclaw/workspace/wiki/decisions/Gateway_Router_Implementation.md",
       "action": "modified",
-      "summary": "Modified: Gateway_Router_Implementation.md. Key content: **Date:** 2026-05-03 **Updated by:** Mathew **Status:** \u2705 LIVE \u2014 v2.0 --- **Deprecated:** \"Context-Only\" escalation \u2014 routing purely based on how much context a task needs..",
+      "summary": "Modified: Gateway_Router_Implementation.md. Key content: **Date:** 2026-05-03 **Updated by:** Mathew **Status:** ✅ LIVE — v2.0 --- **Deprecated:** \"Context-Only\" escalation — routing purely based on how much context a task needs..",
       "timestamp": "2026-05-03T19:52:10.709687+00:00",
       "size_bytes": 4739
     }
@@ -22,7 +22,7 @@
       "status_code": "OK",
       "type": "system",
       "severity": "info",
-      "message": "HUB STABLE \u2014 All systems nominal. KP-002 Alerts & Ideas Hub initialized.",
+      "message": "HUB STABLE — All systems nominal. KP-002 Alerts & Ideas Hub initialized.",
       "source": "MITTY"
     },
     {
@@ -32,17 +32,27 @@
       "status_code": "OK",
       "type": "system",
       "severity": "info",
-      "message": "Katzen Alerts Hub initialized \u2014 Project Kaizen [KP-002]",
+      "message": "Katzen Alerts Hub initialized — Project Kaizen [KP-002]",
       "source": "KITTY"
     }
   ],
   "ideas_backlog": [
     {
+      "id": "idea-002",
+      "cycle": "KP-003",
+      "title": "Smart Alert Grouping",
+      "description": "Group repetitive 'Sync Successful' logs into 'X Syncs completed today' summary cards. Prevents Live Logs wall-of-text. Groups by [agent]+[status_code] combo when count >= 5 within same day.",
+      "status": "approved",
+      "proposed_at": "2026-05-03T20:15:00.000Z",
+      "votes": 1,
+      "complexity_index": 2
+    },
+    {
       "id": "idea-001",
       "cycle": "KP-001",
       "title": "Bio-Digital VRAM Monitor",
       "description": "Glassmorphic VRAM gauge with gradient fill showing GTX 1650 Ti utilization. Complements the RAM Watchdog at 70% threshold. Animated fill on hover.",
-      "status": "proposed",
+      "status": "implemented",
       "proposed_at": "2026-05-03T19:30:00.000Z",
       "votes": 0,
       "complexity_index": 2
@@ -55,7 +65,14 @@
       "component": "VRAMPulse",
       "api_endpoint": "/api/vram",
       "poll_interval_seconds": 30,
+      "monitor_endpoint": "/api/vram_monitor",
       "gpu": "NVIDIA GeForce GTX 1650 Ti 4GB"
+    },
+    "alert_grouping": {
+      "status": "proposed",
+      "cycle": "KP-003",
+      "grouping_rule": "consecutive same [agent]+[status_code] count >= 5",
+      "summary_template": "X [agent] [status_code] events — last 24h"
     }
   }
 }
