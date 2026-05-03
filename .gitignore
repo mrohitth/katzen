@@ -1,41 +1,71 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
+# Build output
+.next/
+out/
+build/
+dist/
 
-# testing
-/coverage
+# Environment files
+.env
+.env.local
+.env.*.local
 
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
+# Debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# Editor directories
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
 
-# vercel
-.vercel
+# System files
+Thumbs.db
 
-# typescript
+# OpenClaw workspace - DO NOT LEAK PRIVATE DATA
+# These paths contain memory logs, agent configs, and personal context
+.openclaw/
+workspace/memory/
+workspace/.openclaw/
+workspace/MEMORY.md
+workspace/USER.md
+workspace/IDENTITY.md
+workspace/AGENTS.md
+workspace/SOUL.md
+workspace/HEARTBEAT.md
+workspace/TOOLS.md
+workspace/SPEC.md
+
+# Agent data
+agents/
+memory/
+logs/
+tasks/
+
+# Credentials and keys
+credentials/
+*.pem
+*.key
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# TypeScript cache
 *.tsbuildinfo
 next-env.d.ts
+
+# Vercel
+.vercel
+
+# Turbopack
+.turbopack/
+.turbopack-build/
+.turbopack-cache/
