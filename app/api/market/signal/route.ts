@@ -48,9 +48,13 @@ const MOCK_QUOTES: Record<string, StockQuote> = {
   SCHD:  { symbol: "SCHD",  price: 31.86,  change: 0.12,  changePercent: 0.38,  signal: "NEUTRAL" as const },
   VXUS:  { symbol: "VXUS",  price: 82.97,  change: 0.55,  changePercent: 0.67,  signal: "BULL" as const },
   VOOG:  { symbol: "VOOG",  price: 78.46,  change: 0.92,  changePercent: 1.19,  signal: "BULL" as const },
+  VTI:   { symbol: "VTI",   price: 260.00, change: 1.20,  changePercent: 0.46,  signal: "BULL" as const },
+  VOO:   { symbol: "VOO",   price: 450.00, change: 2.10,  changePercent: 0.47,  signal: "BULL" as const },
+  SPYD:  { symbol: "SPYD",  price: 45.00,  change: 0.30,  changePercent: 0.67,  signal: "BULL" as const },
+  ASTS:  { symbol: "ASTS",  price: 10.00,  change: -0.50, changePercent: -4.76, signal: "BEAR" as const },
 };
 
-const TICKERS = ["NVDA", "SMH", "SCHG", "QQQ", "SCHD", "VXUS", "VOOG"];
+const TICKERS = ["NVDA", "SMH", "SCHG", "QQQ", "SCHD", "VXUS", "VOOG", "VTI", "VOO", "SPYD", "ASTS"];
 
 export async function GET() {
   try {

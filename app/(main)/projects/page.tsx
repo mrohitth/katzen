@@ -72,17 +72,24 @@ interface UsageData {
 interface Holding {
   symbol: string;
   name: string;
+  shares: number | null;
+  avgCost: number | null;
   allocation: number; // percentage
-  type: "AI_CHIP" | "SEMI_ETF" | "GROWTH_ETF" | "TECH_ETF" | "DIVIDEND_ETF" | "INTL_ETF";
+  type: "BROAD_INDEX" | "AI_CHIP" | "SEMI_ETF" | "GROWTH_ETF" | "DIVIDEND_ETF" | "INTL_ETF" | "SPECULATIVE";
   color: string;
 }
 
 const HOLDINGS: Holding[] = [
-  { symbol: "NVDA", name: "NVIDIA", allocation: 40, type: "AI_CHIP", color: "#4ADE80" },
-  { symbol: "SMH", name: "VanEck Semiconductor ETF", allocation: 30, type: "SEMI_ETF", color: "#A78BFA" },
-  { symbol: "SCHG", name: "Schwab US Growth ETF", allocation: 15, type: "GROWTH_ETF", color: "#FBBF24" },
-  { symbol: "QQQ", name: "Invesco QQQ Trust", allocation: 10, type: "TECH_ETF", color: "#38BDF8" },
-  { symbol: "SCHD", name: "Schwab Dividend Equity ETF", allocation: 0, type: "DIVIDEND_ETF", color: "#34D399" },
+  { symbol: "VTI",  name: "Vanguard Total Stock Market", shares: 34,   avgCost: 230.97, allocation: 20.2, type: "BROAD_INDEX",   color: "#6366F1" },
+  { symbol: "NVDA", name: "NVIDIA",                    shares: 41.6, avgCost: 203.11, allocation: 18.9, type: "AI_CHIP",        color: "#4ADE80" },
+  { symbol: "VOO",  name: "Vanguard S&P 500 ETF",     shares: 17.1, avgCost: 402.90, allocation: 17.6, type: "BROAD_INDEX",   color: "#818CF8" },
+  { symbol: "QQQ",  name: "Invesco QQQ Trust",        shares: 9.4,  avgCost: 596.86, allocation: 14.4, type: "GROWTH_ETF",    color: "#38BDF8" },
+  { symbol: "SMH",  name: "VanEck Semiconductor ETF", shares: 8.1,  avgCost: 503.28, allocation: 9.5,  type: "SEMI_ETF",      color: "#A78BFA" },
+  { symbol: "SCHG", name: "Schwab US Large-Cap Growth",shares: 102.4, avgCost: 30.01, allocation: 7.8, type: "GROWTH_ETF",    color: "#FBBF24" },
+  { symbol: "VXUS", name: "Vanguard Total International",shares: 29.7, avgCost: 73.16, allocation: 5.6, type: "INTL_ETF",     color: "#F472B6" },
+  { symbol: "SCHD", name: "Schwab US Dividend Equity", shares: 75.2, avgCost: 29.35, allocation: 5.5, type: "DIVIDEND_ETF",  color: "#34D399" },
+  { symbol: "SPYD", name: "SPDR S&P 500 High Dividend",shares: 3.7,  avgCost: 40.72, allocation: 0.4,  type: "DIVIDEND_ETF",  color: "#FB923C" },
+  { symbol: "ASTS", name: "AST Spacemobile",          shares: 8.7,  avgCost: 11.42, allocation: 0.2,  type: "SPECULATIVE",   color: "#EF4444" },
 ];
 
 export default function ProjectsPage() {
@@ -182,14 +189,19 @@ export default function ProjectsPage() {
   // Get market data for holdings
   const getHoldingWithMarket = (symbol: string) => {
     const quote = marketData.find((q) => q.symbol === symbol);
+    const holding = HOLDINGS.find((h) => h.symbol === symbol);
     return {
-      ...HOLDINGS.find((h) => h.symbol === symbol),
-      price: quote?.price || 0,
+      ...holding,
+      price: quote?.price || holding?.avgCost || 0,
       change: quote?.change || 0,
       changePercent: quote?.changePercent || 0,
       signal: quote?.signal || "NEUTRAL",
     };
   };
+
+  // Portfolio summary
+  const totalValue = 43757.84;
+  const totalGain = 3027.95;
 
   return (
     <div className="p-8 pb-24">
@@ -317,27 +329,27 @@ export default function ProjectsPage() {
             </div>
 
             {/* Category Summary */}
-            <div className="flex items-center gap-4 pt-2 border-t border-border/50">
+            <div className="flex items-center gap-4 pt-2 border-t border-border/50 flex-wrap">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-0.5 bg-indigo-500" />
+                <span className="text-text-muted text-xs">Broad Index: 38%</span>
+              </div>
               <div className="flex items-center gap-1">
                 <Cpu className="w-3 h-3 text-moss" />
-                <span className="text-text-muted text-xs">AI Chips: 40%</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-0.5 bg-violet" />
-                <span className="text-text-muted text-xs">Semi ETF: 30%</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-0.5 bg-amber" />
-                <span className="text-text-muted text-xs">Growth: 15%</span>
+                <span className="text-text-muted text-xs">AI Chip: 19%</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-0.5 bg-sky-400" />
-                <span className="text-text-muted text-xs">Tech: 10%</span>
+                <span className="text-text-muted text-xs">Tech: 14%</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-0.5 bg-violet" />
+                <span className="text-text-muted text-xs">Semi: 10%</span>
               </div>
             </div>
-            <p className="text-text-muted text-xs pt-1">
-              * Portfolio context from Fidelity emails — enter share counts for actual values
-            </p>
+            <div className="mt-2 text-text-muted text-xs">
+              Total Value: $43,757.84 | Day: -0.25% | 10 positions
+            </div>
           </div>
         </Card>
       </div>
