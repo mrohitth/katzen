@@ -19,7 +19,10 @@ import {
   DollarSign,
   PieChart,
   Cpu,
+  Radio,
 } from "lucide-react";
+
+import SwarmActivityFeed from "@/components/swarm-activity-feed";
 
 interface GitHubStats {
   stars: number;
@@ -398,6 +401,22 @@ export default function ProjectsPage() {
         ) : (
           <p className="text-text-muted text-sm font-mono">Unable to load usage data</p>
         )}
+      </Card>
+
+      {/* Swarm Activity Feed */}
+      <Card className="bg-obsidian-light border-border rounded-xl p-6 mb-8 glow-violet">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-8 h-8 rounded-lg bg-violet/10 flex items-center justify-center">
+            <Radio className="w-4 h-4 text-violet" />
+          </div>
+          <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider">
+            Swarm Activity Feed
+          </h2>
+          <Badge variant="secondary" className="bg-violet/10 text-violet border-violet/20 font-mono text-xs">
+            LIVE
+          </Badge>
+        </div>
+        <SwarmActivityFeed />
       </Card>
 
       {/* GitHub Stats Card */}

@@ -7,14 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Activity, Cpu, MemoryStick, Clock, Zap, Snowflake, Search, X, FileText, Sparkles } from "lucide-react";
+import { Activity, Cpu, MemoryStick, Clock, Zap, Snowflake, Search, X, FileText } from "lucide-react";
 
 interface Agent {
   id: string;
   name: string;
   emoji: string;
   role: string;
-  status: "active" | "idle" | "in_stasis" | "initializing" | "ready";
+  status: "active" | "idle" | "in_stasis" | "initializing";
   lastActive: string;
 }
 
@@ -133,41 +133,6 @@ export default function ZenOfficePage() {
       setAgentSheetOpen(true);
     } catch (e) {
       console.error("Failed to fetch agent info:", e);
-    }
-  };
-
-  const handleInitializeAgent = async (agentId: string) => {
-    if (!confirm(`Initialize ${agentId}? This will write an ARRIVAL log and set them to ACTIVE.`)) return;
-    
-    try {
-      const res = await fetch("/api/agents/initialize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agentId }),
-      });
-      
-      const data = await res.json();
-      
-      if (data.success) {
-        // Update local agent status to ACTIVE
-        setAgents((prev) =>
-          prev.map((agent) =>
-            agent.id === agentId
-              ? { ...agent, status: "active" as const, lastActive: "Just now" }
-              : agent
-          )
-        );
-        
-        // Refresh task count (arrival log will trigger bloom)
-        fetchTaskCount();
-        
-        alert(`[KITTY]: ${agentId} ARRIVAL logged. Now ACTIVE.`);
-      } else {
-        alert(`[KITTY]: Failed to initialize ${agentId}`);
-      }
-    } catch (e) {
-      console.error("Failed to initialize agent:", e);
-      alert(`[KITTY]: Failed to initialize ${agentId}`);
     }
   };
 
@@ -323,8 +288,6 @@ export default function ZenOfficePage() {
                       ? "bg-obsidian-light border-moss/30 glow-moss"
                       : agent.status === "in_stasis"
                       ? "bg-obsidian-light border-amber/30 glow-amber"
-                      : agent.status === "ready"
-                      ? "bg-obsidian-light border-violet/30 glow-violet"
                       : "bg-obsidian-light border-border"
                   }`}
                 >
@@ -378,12 +341,10 @@ export default function ZenOfficePage() {
                             ? "bg-moss/10 text-moss border-moss/20"
                             : agent.status === "in_stasis"
                             ? "bg-amber/10 text-amber border-amber/20"
-                            : agent.status === "ready"
-                            ? "bg-violet/10 text-violet border-violet/20"
                             : "bg-obsidian text-text-muted"
                         }`}
                       >
-                        {agent.status === "in_stasis" ? "IN STASIS" : agent.status === "ready" ? "READY" : agent.status.toUpperCase()}
+                        {agent.status === "in_stasis" ? "IN STASIS" : agent.status.toUpperCase()}
                       </Badge>
                       <p className="text-text-muted text-xs font-mono mt-2">
                         <Clock className="w-3 h-3 inline mr-1" />
@@ -394,11 +355,6 @@ export default function ZenOfficePage() {
                     {agent.status === "in_stasis" && (
                       <div className="absolute top-2 right-2">
                         <Snowflake className="w-4 h-4 text-amber/50 animate-pulse" />
-                      </div>
-                    )}
-                    {agent.status === "ready" && (
-                      <div className="absolute top-2 right-2">
-                        <Sparkles className="w-4 h-4 text-violet/70 animate-pulse" />
                       </div>
                     )}
                     {agent.status === "active" && (
@@ -419,17 +375,13 @@ export default function ZenOfficePage() {
                 <div className="mt-2 px-1">
                   <div className="h-1 bg-obsidian-light rounded-full overflow-hidden">
                     <div
-                      className={`h-full transition-all duration-1000 ease-out ${
-                        incubatorProgress >= 95 ? "bg-violet" : "bg-amber"
-                      }`}
-                      style={{ width: `${Math.min(100, incubatorProgress)}%` }}
+                      className="h-full bg-amber transition-all duration-1000 ease-out"
+                      style={{ width: `${incubatorProgress}%` }}
                     />
                   </div>
                   <p className="text-text-muted text-xs text-center mt-1 font-mono">
                     {heartbeatData
-                      ? incubatorProgress >= 95
-                        ? <button onClick={() => handleInitializeAgent(agent.id)} className="text-violet hover:underline">READY — Initialize</button>
-                        : `Heartbeat #${heartbeatData.heartbeatCount}`
+                      ? `Heartbeat #${heartbeatData.heartbeatCount}`
                       : "Initializing..."}
                   </p>
                 </div>

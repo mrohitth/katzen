@@ -148,14 +148,26 @@ export default function CommandBar({ className = "" }: CommandBarProps) {
 
       <div className="w-px h-8 bg-border" />
 
-      {/* Task Stats */}
+      {/* Task Stats with SLA */}
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-obsidian/50">
         <Activity className="w-4 h-4 text-violet" />
         <div className="flex flex-col">
           <span className="text-xs text-text-muted font-mono">TASKS</span>
-          <span className="text-sm text-text-primary font-mono">
-            {data.doneCount}/{data.pendingCount + data.doneCount}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-text-primary font-mono">
+              {data.doneCount}/{data.pendingCount + data.doneCount}
+            </span>
+            {/* SLA Sparkline - velocity indicator */}
+            <div className="flex items-end gap-0.5 h-4">
+              {[60, 45, 80, 30, 55].map((h, i) => (
+                <div
+                  key={i}
+                  className="w-1 bg-moss/60 rounded-t"
+                  style={{ height: `${h}%` }}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
