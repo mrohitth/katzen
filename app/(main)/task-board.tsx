@@ -3,7 +3,7 @@
 import { useState, useTransition, useCallback, useRef, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { CheckCircle2, Circle, Plus, X, Edit2, Check, XCircle } from "lucide-react";
+import { CheckCircle2, Circle, Plus, X, Edit2, Check, XCircle, Clock } from "lucide-react";
 
 interface Task {
   content: string;
@@ -44,6 +44,10 @@ export default function TaskBoard({ initialTasks, initialDate }: TaskBoardProps)
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [tooltipContent, setTooltipContent] = useState<SearchResult | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [scheduledJobs, setScheduledJobs] = useState<{
+    id: string; name: string; schedule: string; scheduleKind: string;
+    nextRun: string | null; nextRunMs: number | null; status: string; delivery: string;
+  }[]>([]);
   const [lastFetchAt, setLastFetchAt] = useState<number>(Date.now());
 
   // Refresh tasks when window regains focus (catches changes from other sessions/cron)
@@ -61,6 +65,14 @@ export default function TaskBoard({ initialTasks, initialDate }: TaskBoardProps)
     };
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
+  }, []);
+
+  // Fetch scheduled jobs once on mount
+  useEffect(() => {
+    fetch("/api/scheduler")
+      .then((r) => r.json())
+      .then((data) => { if (!data.error && data.jobs) setScheduledJobs(data.jobs); })
+      .catch(console.error);
   }, []);
 
   const addToast = useCallback((message: string) => {
@@ -237,7 +249,7 @@ export default function TaskBoard({ initialTasks, initialDate }: TaskBoardProps)
       </form>
 
       {/* Kanban Board */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Pending Column */}
         <div>
           <div className="flex items-center gap-2 mb-4">
@@ -421,6 +433,63 @@ export default function TaskBoard({ initialTasks, initialDate }: TaskBoardProps)
                           </button>
                         </>
                       )}
+                    </div>
+                  </Card>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Scheduled Column */}
+        <div>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-2 h-2 rounded-full bg-violet animate-pulse" />
+            <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider">
+              Scheduled
+            </h2>
+            <Badge variant="secondary" className="bg-obsidian-light text-text-muted font-mono">
+              {scheduledJobs.length}
+            </Badge>
+          </div>
+
+          <div className="space-y-3">
+            {scheduledJobs.length === 0 ? (
+              <div className="text-center py-12 text-text-muted">
+                <Clock className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">No scheduled jobs</p>
+              </div>
+            ) : (
+              scheduledJobs.map((job) => {
+                const nextRun = job.nextRun ? new Date(job.nextRun) : null;
+                const isCron = job.scheduleKind === "cron";
+                let scheduleLabel = isCron ? job.schedule : "";
+                if (!isCron) {
+                  try { scheduleLabel = `${(JSON.parse(job.schedule || "{}").everyMs || 0)/60000}m`; } catch {}
+                }
+                return (
+                  <Card key={job.id} className="bg-obsidian-light border-violet/30 p-4 rounded-xl">
+                    <div className="flex items-start gap-3">
+                      <Clock className="w-4 h-4 text-violet flex-shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-text-primary text-sm font-medium leading-relaxed">
+                          {job.name}
+                        </p>
+                        <p className="text-text-muted text-xs font-mono mt-0.5">{scheduleLabel}</p>
+                        {nextRun && (
+                          <p className="text-violet/70 text-xs font-mono mt-1">
+                            Next: {nextRun.toLocaleString([], {month:"short",day:"numeric",hour:"2-digit",minute:"2-digit",timeZoneName:"short"})}
+                          </p>
+                        )}
+                      </div>
+                      <Badge
+                        variant="secondary"
+                        className={`font-mono text-xs flex-shrink-0 ${
+                          job.status === "disabled" ? "bg-obsidian text-text-muted" : "bg-violet/10 text-violet border-violet/20"
+                        }`}
+                      >
+                        {job.status === "disabled" ? "off" : "cron"}
+                      </Badge>
                     </div>
                   </Card>
                 );
