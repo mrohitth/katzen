@@ -73,14 +73,16 @@ interface Holding {
   symbol: string;
   name: string;
   allocation: number; // percentage
-  type: "AI_CHIP" | "SEMI_ETF" | "GROWTH_ETF";
+  type: "AI_CHIP" | "SEMI_ETF" | "GROWTH_ETF" | "TECH_ETF" | "DIVIDEND_ETF" | "INTL_ETF";
   color: string;
 }
 
 const HOLDINGS: Holding[] = [
-  { symbol: "NVDA", name: "NVIDIA", allocation: 45, type: "AI_CHIP", color: "#4ADE80" },
-  { symbol: "SMH", name: "VanEck Semiconductor ETF", allocation: 35, type: "SEMI_ETF", color: "#A78BFA" },
-  { symbol: "SCHG", name: "Schwab US Growth ETF", allocation: 20, type: "GROWTH_ETF", color: "#FBBF24" },
+  { symbol: "NVDA", name: "NVIDIA", allocation: 40, type: "AI_CHIP", color: "#4ADE80" },
+  { symbol: "SMH", name: "VanEck Semiconductor ETF", allocation: 30, type: "SEMI_ETF", color: "#A78BFA" },
+  { symbol: "SCHG", name: "Schwab US Growth ETF", allocation: 15, type: "GROWTH_ETF", color: "#FBBF24" },
+  { symbol: "QQQ", name: "Invesco QQQ Trust", allocation: 10, type: "TECH_ETF", color: "#38BDF8" },
+  { symbol: "SCHD", name: "Schwab Dividend Equity ETF", allocation: 0, type: "DIVIDEND_ETF", color: "#34D399" },
 ];
 
 export default function ProjectsPage() {
@@ -318,17 +320,24 @@ export default function ProjectsPage() {
             <div className="flex items-center gap-4 pt-2 border-t border-border/50">
               <div className="flex items-center gap-1">
                 <Cpu className="w-3 h-3 text-moss" />
-                <span className="text-text-muted text-xs">AI Chips: 45%</span>
+                <span className="text-text-muted text-xs">AI Chips: 40%</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-0.5 bg-violet" />
-                <span className="text-text-muted text-xs">Semi ETF: 35%</span>
+                <span className="text-text-muted text-xs">Semi ETF: 30%</span>
               </div>
               <div className="flex items-center gap-1">
                 <div className="w-3 h-0.5 bg-amber" />
-                <span className="text-text-muted text-xs">Growth: 20%</span>
+                <span className="text-text-muted text-xs">Growth: 15%</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-0.5 bg-sky-400" />
+                <span className="text-text-muted text-xs">Tech: 10%</span>
               </div>
             </div>
+            <p className="text-text-muted text-xs pt-1">
+              * Portfolio context from Fidelity emails — enter share counts for actual values
+            </p>
           </div>
         </Card>
       </div>
