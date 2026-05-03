@@ -17,6 +17,7 @@ interface StatusData {
   // Scheduler
   nextRun: string | null;
   nextRunName: string | null;
+  nextRunMs: number | null;
   countdown: string | null;
   // Usage
   budgetUsed: number;
@@ -33,6 +34,7 @@ export default function CommandBar({ className = "" }: CommandBarProps) {
     topTask: null,
     nextRun: null,
     nextRunName: null,
+    nextRunMs: null,
     countdown: null,
     budgetUsed: 0,
     budgetPercent: 0,
@@ -63,7 +65,8 @@ export default function CommandBar({ className = "" }: CommandBarProps) {
         topTask: tasks.topTask || null,
         nextRun: scheduler.nextRun || null,
         nextRunName: scheduler.nextRunName || null,
-        countdown: null, // Will be calculated by useEffect
+        nextRunMs: scheduler.nextRunMs || null,
+        countdown: null,
         budgetUsed: usage.today?.estimatedCost || 0,
         budgetPercent: usage.budget?.percentUsed || 0,
         heartbeatCount: heartbeat.heartbeatCount || 0,
@@ -78,24 +81,42 @@ export default function CommandBar({ className = "" }: CommandBarProps) {
 
   useEffect(() => {
     fetchAll();
-    const interval = setInterval(fetchAll, 15000); // Refresh every 15s
+    const interval = setInterval(fetchAll, 15000);
     return () => clearInterval(interval);
   }, [fetchAll]);
 
-  // Countdown timer
+  // Countdown timer using nextRunMs (real evidence, not mock)
   useEffect(() => {
-    if (!data.nextRun) return;
+    if (!data.nextRunMs) {
+      // Fallback: use nextRun ISO string if available
+      if (!data.nextRun) return;
+      const tick = () => {
+        const next = new Date(data.nextRun!).getTime();
+        const now = Date.now();
+        const diff = next - now;
+        if (diff <= 0) {
+          setData((prev) => ({ ...prev, countdown: "00:00" }));
+          return;
+        }
+        const minutes = Math.floor(diff / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+        setData((prev) => ({
+          ...prev,
+          countdown: `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`,
+        }));
+      };
+      tick();
+      const interval = setInterval(tick, 1000);
+      return () => clearInterval(interval);
+    }
 
-    const updateCountdown = () => {
-      const nextRun = new Date(data.nextRun!).getTime();
+    const tick = () => {
       const now = Date.now();
-      const diff = nextRun - now;
-
+      const diff = data.nextRunMs! - now;
       if (diff <= 0) {
         setData((prev) => ({ ...prev, countdown: "00:00" }));
         return;
       }
-
       const minutes = Math.floor(diff / 60000);
       const seconds = Math.floor((diff % 60000) / 1000);
       setData((prev) => ({
@@ -104,10 +125,10 @@ export default function CommandBar({ className = "" }: CommandBarProps) {
       }));
     };
 
-    updateCountdown();
-    const interval = setInterval(updateCountdown, 1000);
+    tick();
+    const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [data.nextRun]);
+  }, [data.nextRunMs, data.nextRun]);
 
   return (
     <div className={`flex items-center gap-3 p-3 bg-obsidian-light border border-border rounded-xl ${className}`}>
@@ -123,6 +144,11 @@ export default function CommandBar({ className = "" }: CommandBarProps) {
             {data.countdown || "--:--"}
           </span>
         </div>
+        {data.nextRunName && (
+          <span className="text-xs text-text-muted/70 font-mono ml-1 hidden sm:inline">
+            {data.nextRunName}
+          </span>
+        )}
       </div>
 
       <div className="w-px h-8 bg-border" />
@@ -148,7 +174,7 @@ export default function CommandBar({ className = "" }: CommandBarProps) {
 
       <div className="w-px h-8 bg-border" />
 
-      {/* Task Stats with SLA */}
+      {/* Task Stats */}
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-obsidian/50">
         <Activity className="w-4 h-4 text-violet" />
         <div className="flex flex-col">
@@ -157,7 +183,6 @@ export default function CommandBar({ className = "" }: CommandBarProps) {
             <span className="text-sm text-text-primary font-mono">
               {data.doneCount}/{data.pendingCount + data.doneCount}
             </span>
-            {/* SLA Sparkline - velocity indicator */}
             <div className="flex items-end gap-0.5 h-4">
               {[60, 45, 80, 30, 55].map((h, i) => (
                 <div

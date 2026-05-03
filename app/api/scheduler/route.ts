@@ -1,116 +1,124 @@
 import { NextResponse } from "next/server";
+import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 30;
-
-const WORKSPACE = process.env.OPENCLAW_WORKSPACE || "/home/mathew/.openclaw/workspace";
+export const revalidate = 0;
 
 interface CronJob {
+  id: string;
   name: string;
   schedule: string;
+  scheduleKind: string;
+  timezone?: string;
   nextRun: string | null;
-  status: string;
+  nextRunMs: number | null;
+  lastRun: string | null;
+  status: "idle" | "active" | "disabled";
+  sessionTarget: string;
+  delivery: string;
 }
 
-function parseCronExpression(expr: string): { interval: number; nextRunMs: number } | null {
-  // Simple cron: every X minutes/hours/days
-  // Format: "*/5 * * * *" = every 5 minutes
-  const parts = expr.trim().split(/\s+/);
-  if (parts.length < 5) return null;
-
-  const [minute, hour, day, month, dow] = parts;
-
-  // Handle */X patterns
-  if (minute.startsWith("*/")) {
-    const interval = parseInt(minute.slice(2)) * 60 * 1000; // minutes to ms
-    return { interval, nextRunMs: interval };
-  }
-  if (hour.startsWith("*/")) {
-    const interval = parseInt(hour.slice(2)) * 60 * 60 * 1000; // hours to ms
-    return { interval, nextRunMs: interval };
-  }
-
-  return null;
-}
+const SESSIONS_DIR = "/home/mathew/.openclaw/agents/main/sessions";
 
 export async function GET() {
   try {
-    const configPath = path.join(WORKSPACE, "..", "openclaw.json");
-    
-    if (!fs.existsSync(configPath)) {
-      return NextResponse.json({ jobs: [], nextRun: null });
-    }
-
-    const config = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-
-    // Get cron jobs from the flows directory (TaskFlow jobs)
-    const flowsDir = path.join(WORKSPACE, "..", "flows");
     let cronJobs: CronJob[] = [];
+    let rawOutput = "";
 
-    if (fs.existsSync(flowsDir)) {
-      // Check registry for scheduled jobs
-      const registryPath = path.join(flowsDir, "registry.sqlite");
-      // For now, use mock data since we don't have actual cron entries yet
-      // In production, query the registry
+    try {
+      rawOutput = execSync("openclaw cron list --json 2>/dev/null", {
+        encoding: "utf-8",
+        timeout: 5000,
+        maxBuffer: 64 * 1024,
+      });
+    } catch {
+      rawOutput = "";
     }
 
-    // Check openclaw.json for any cron configuration
-    if (config.cron && Array.isArray(config.cron)) {
-      cronJobs = config.cron.map((job: any) => ({
-        name: job.name || "Unnamed Job",
-        schedule: job.schedule?.expr || "*/30 * * * *",
-        nextRun: null,
-        status: job.enabled === false ? "disabled" : "active",
-      }));
-    } else {
-      // Default heartbeat job if nothing configured
-      cronJobs = [
-        {
-          name: "Heartbeat",
-          schedule: "*/30 * * * *",
-          nextRun: null,
-          status: "active",
-        },
-      ];
+    if (rawOutput) {
+      try {
+        const parsed = JSON.parse(rawOutput);
+        const jobs = parsed.jobs || [];
+        cronJobs = jobs.map((j: any) => ({
+          id: j.id || "",
+          name: j.name || "Unnamed",
+          schedule: j.schedule?.expr || j.schedule?.everyMs ? JSON.stringify(j.schedule) : "unknown",
+          scheduleKind: j.schedule?.kind || "unknown",
+          timezone: j.schedule?.tz,
+          nextRun: j.state?.nextRunAtMs ? new Date(j.state.nextRunAtMs).toISOString() : null,
+          nextRunMs: j.state?.nextRunAtMs || null,
+          lastRun: j.state?.lastRunAtMs ? new Date(j.state.lastRunAtMs).toISOString() : null,
+          status: j.enabled === false ? "disabled" : "idle",
+          sessionTarget: j.sessionTarget || "",
+          delivery: parsed.deliveryPreviews?.[j.id]?.label || "",
+        }));
+      } catch {
+        cronJobs = [];
+      }
     }
 
-    // Calculate next run times
     const now = Date.now();
-    const jobsWithNextRun = cronJobs.map((job) => {
-      if (job.status === "disabled") {
-        return { ...job, nextRun: null };
-      }
-      const parsed = parseCronExpression(job.schedule);
-      if (parsed) {
-        const nextRunMs = now + parsed.nextRunMs;
-        return { ...job, nextRun: new Date(nextRunMs).toISOString() };
-      }
-      // Default: run in 30 minutes
-      return {
-        ...job,
-        nextRun: new Date(now + 30 * 60 * 1000).toISOString(),
-      };
-    });
 
-    // Find the soonest job
-    const activeJobs = jobsWithNextRun.filter((j) => j.nextRun && j.status === "active");
-    const nextRunJob = activeJobs.reduce((soonest, job) => {
-      if (!soonest.nextRun) return job;
-      if (!job.nextRun) return soonest;
-      return new Date(job.nextRun) < new Date(soonest.nextRun) ? job : soonest;
-    }, {} as CronJob);
+    // Find the soonest next run
+    const activeJobs = cronJobs
+      .filter((j) => j.status !== "disabled" && j.nextRunMs)
+      .sort((a, b) => (a.nextRunMs || Infinity) - (b.nextRunMs || Infinity));
+
+    const nextRunJob = activeJobs[0] || null;
+
+    // If no cron jobs configured, show heartbeat based on session start
+    if (cronJobs.length === 0) {
+      let sessionStartMs = now;
+      try {
+        if (fs.existsSync(SESSIONS_DIR)) {
+          const files = fs.readdirSync(SESSIONS_DIR)
+            .filter((f) => f.endsWith(".jsonl") && !f.includes("checkpoint") && !f.includes("bak"))
+            .map((f) => ({ file: f, ctime: fs.statSync(path.join(SESSIONS_DIR, f)).ctimeMs }))
+            .sort((a, b) => a.ctime - b.ctime);
+          if (files.length > 0) sessionStartMs = files[0].ctime;
+        }
+      } catch { /* use now */ }
+
+      const heartbeatIntervalMs = 30 * 60 * 1000;
+      const elapsed = now - sessionStartMs;
+      const heartbeatsElapsed = Math.floor(elapsed / heartbeatIntervalMs);
+      const nextHeartbeatMs = sessionStartMs + (heartbeatsElapsed + 1) * heartbeatIntervalMs;
+
+      const heartbeatJob: CronJob = {
+        id: "heartbeat",
+        name: "Kitty Heartbeat",
+        schedule: "*/30 * * * *",
+        scheduleKind: "cron",
+        nextRun: new Date(nextHeartbeatMs).toISOString(),
+        nextRunMs: nextHeartbeatMs,
+        lastRun: null,
+        status: "active",
+        sessionTarget: "isolated",
+        delivery: "systemEvent",
+      };
+
+      return NextResponse.json({
+        jobs: [heartbeatJob],
+        nextRun: heartbeatJob.nextRun,
+        nextRunName: heartbeatJob.name,
+        nextRunMs: heartbeatJob.nextRunMs,
+        source: "session-based",
+      });
+    }
 
     return NextResponse.json({
-      jobs: jobsWithNextRun,
+      jobs: cronJobs,
       nextRun: nextRunJob?.nextRun || null,
       nextRunName: nextRunJob?.name || null,
+      nextRunMs: nextRunJob?.nextRunMs || null,
+      source: "openclaw",
     });
   } catch (error) {
     console.error("Scheduler fetch error:", error);
     return NextResponse.json(
-      { jobs: [], nextRun: null, error: "Failed to fetch scheduler" },
+      { jobs: [], nextRun: null, nextRunName: null, error: "Failed to fetch scheduler" },
       { status: 500 }
     );
   }

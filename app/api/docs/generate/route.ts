@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
@@ -166,9 +166,12 @@ function generateWeeklyReport(taskSummaries: TaskSummary[], agentContributions: 
   return report;
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const days = 7; // Last 7 days
+    const { searchParams } = new URL(req.url);
+    const raw = searchParams.get("raw") === "1";
+
+    const days = 7;
     const dates = getLastNDays(days);
     const memoryDir = path.join(WORKSPACE, "memory");
     const docsDir = path.join(WORKSPACE, "docs");
@@ -216,6 +219,12 @@ export async function GET() {
     const filename = `weekly-report-${today}.md`;
     const filePath = path.join(docsDir, filename);
     fs.writeFileSync(filePath, report, "utf-8");
+
+    if (raw) {
+      return new NextResponse(report, {
+        headers: { "Content-Type": "text/plain; charset=utf-8" },
+      });
+    }
 
     return NextResponse.json({
       success: true,

@@ -10,6 +10,11 @@ interface Task {
   status: "pending" | "done";
   assigned?: "K" | "T" | "B";
   completedAt?: string; // ISO timestamp
+  project?: string;
+}
+
+interface TaskWithETA extends Task {
+  estimatedMinutes?: number; // null means cannot estimate
 }
 
 interface Toast {
@@ -233,6 +238,7 @@ export default function TaskBoard({ initialTasks, initialDate }: TaskBoardProps)
             ) : (
               pendingTasks.map((task, i) => {
                 const actualIndex = tasks.findIndex((t) => t === task);
+                const estimatedMinutes = estimateTaskMinutes(task.content);
                 return (
                   <Card
                     key={`${task.content}-${i}`}
@@ -284,6 +290,11 @@ export default function TaskBoard({ initialTasks, initialDate }: TaskBoardProps)
                           >
                             {task.content}
                           </p>
+                          {estimatedMinutes && (
+                            <span className="text-xs font-mono text-violet/70 bg-violet/10 px-1.5 py-0.5 rounded border border-violet/20 flex-shrink-0" title="Estimated completion time">
+                              ~{estimatedMinutes}m
+                            </span>
+                          )}
                           <button
                             type="button"
                             onClick={() => handleStartEdit(actualIndex)}
@@ -436,6 +447,37 @@ export default function TaskBoard({ initialTasks, initialDate }: TaskBoardProps)
       )}
     </>
   );
+}
+
+function estimateTaskMinutes(content: string): number | null {
+  // Returns estimated minutes, or null if cannot estimate
+  const c = content.toLowerCase();
+
+  // Explicit time mentions
+  const explicit = /(\d+)\s*(min|minute|hour|hr|hr|h)\b/i.exec(content);
+  if (explicit) {
+    const val = parseInt(explicit[1]);
+    if (/hour|hr/i.test(explicit[2])) return val * 60;
+    return val;
+  }
+
+  // Simple microtasks: < 2 min
+  if (/delete|fix typo|remove\s+comment|tiny|temp|quick/i.test(c)) return 1;
+
+  // Short tasks: 2-5 min
+  if (/update\s+readme|add\s+comment|clean|cleanup|refresh|test\s+local|ping|check\s+status|fix\s+lint/i.test(c)) return 3;
+
+  // Medium tasks: 5-15 min
+  if (/implement|add\s+feature|build|create\s+component|write\s+test|document|review|read\s+doc|setup\s+env/i.test(c)) return 10;
+
+  // Larger tasks: 15-30 min
+  if (/architect|design|refactor|migrate|integrate|setup\s+project|build\s+from\s+scratch|write\s+spec/i.test(c)) return 20;
+
+  // Complex tasks: 30+ min
+  if (/research|analyze|study|benchmark|build\s+pipeline|full\s+stack|end\s+to\s+end|multi/i.test(c)) return 45;
+
+  // Default: no estimate
+  return null;
 }
 
 function ZenEmptyState({ type }: { type: "pending" | "done" }) {
