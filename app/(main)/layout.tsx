@@ -1,5 +1,6 @@
 import NavRail from "@/components/nav-rail";
 import AgentStatusHUD from "@/components/agent-status-hud";
+import VRAMPulse from "@/components/VRAMPulse";
 
 export default function MainLayout({
   children,
@@ -17,6 +18,7 @@ export default function MainLayout({
           </div>
         </div>
         <div className="pt-12">{children}</div>
+        <VRAMPulse />
       </main>
     </div>
   );

@@ -1,7 +1,16 @@
 {
   "schema_version": "2.0",
-  "last_updated": "2026-05-03T19:43:59.145Z",
-  "recent_activity": [],
+  "last_updated": "2026-05-03T20:10:00.000Z",
+  "recent_activity": [
+    {
+      "filename": "Gateway_Router_Implementation.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/decisions/Gateway_Router_Implementation.md",
+      "action": "modified",
+      "summary": "Modified: Gateway_Router_Implementation.md. Key content: **Date:** 2026-05-03 **Updated by:** Mathew **Status:** \u2705 LIVE \u2014 v2.0 --- **Deprecated:** \"Context-Only\" escalation \u2014 routing purely based on how much context a task needs..",
+      "timestamp": "2026-05-03T19:52:10.709687+00:00",
+      "size_bytes": 4739
+    }
+  ],
   "watched_paths": [
     "/home/mathew/.openclaw/workspace/wiki"
   ],
@@ -13,7 +22,7 @@
       "status_code": "OK",
       "type": "system",
       "severity": "info",
-      "message": "HUB STABLE — All systems nominal. KP-002 Alerts & Ideas Hub initialized.",
+      "message": "HUB STABLE \u2014 All systems nominal. KP-002 Alerts & Ideas Hub initialized.",
       "source": "MITTY"
     },
     {
@@ -23,7 +32,7 @@
       "status_code": "OK",
       "type": "system",
       "severity": "info",
-      "message": "Katzen Alerts Hub initialized — Project Kaizen [KP-002]",
+      "message": "Katzen Alerts Hub initialized \u2014 Project Kaizen [KP-002]",
       "source": "KITTY"
     }
   ],
@@ -38,5 +47,15 @@
       "votes": 0,
       "complexity_index": 2
     }
-  ]
+  ],
+  "system_capabilities": {
+    "vram_monitoring": {
+      "status": "active",
+      "threshold": 70,
+      "component": "VRAMPulse",
+      "api_endpoint": "/api/vram",
+      "poll_interval_seconds": 30,
+      "gpu": "NVIDIA GeForce GTX 1650 Ti 4GB"
+    }
+  }
 }
