@@ -3,32 +3,89 @@ import { NextResponse } from "next/server";
 export const dynamic = "force-dynamic";
 
 /**
- * Fetch live balance/usage from MiniMax API.
- * Falls back to sessions.json derived data if API is unreachable.
+ * Fetch live usage from MiniMax Coding Plan API.
+ * Endpoint: /v1/api/openplatform/coding_plan/remains
+ * Returns per-model prompt usage counts, remaining counts, and window reset times.
  */
-async function fetchMiniMaxBalance(): Promise<{
-  balance?: number;
-  currency?: string;
-  error?: string;
-} | null> {
+async function fetchMiniMaxUsage() {
   const apiKey = process.env.MINIMAX_API_KEY || process.env.OPENCLAW_MINIMAX_API_KEY;
   if (!apiKey) return null;
 
+  const url = "https://api.minimax.io/v1/api/openplatform/coding_plan/remains";
   try {
-    // MiniMax usage/balance endpoint
-    const res = await fetch("https://api.minimax.io/v1/query/balance", {
+    const res = await fetch(url, {
       headers: {
         "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!res.ok) return null;
-    const data = await res.json() as { balance?: number; credit?: number; currency?: string };
+    const data = await res.json();
+
+    const baseResp = data.base_resp || data.baseResp;
+    if (baseResp && baseResp.status_code !== 0 && baseResp.status_code !== "0") {
+      return null;
+    }
+
+    const models: Array<{
+      name: string;
+      usedPrompts: number;
+      totalPrompts: number;
+      remainingPrompts: number;
+      usagePercent: number;
+      windowResetsAt: string | null;
+      windowResetsInMs: number;
+    }> = [];
+
+    const modelRemains = data.model_remains || [];
+    for (const m of modelRemains) {
+      const total = m.current_interval_total_count ?? 0;
+      const remaining = m.current_interval_remaining_count ?? 0;
+      const used = total - remaining;
+      const pct = total > 0 ? Math.round((used / total) * 100) : 0;
+
+      // remains_time is in milliseconds — window reset countdown
+      const remainsMs = m.remains_time ?? 0;
+      const windowResetsAt = remainsMs > 0
+        ? new Date(Date.now() + remainsMs).toISOString()
+        : null;
+
+      models.push({
+        name: m.model_name || "unknown",
+        usedPrompts: used,
+        totalPrompts: total,
+        remainingPrompts: remaining,
+        usagePercent: pct,
+        windowResetsAt,
+        windowResetsInMs: remainsMs,
+      });
+    }
+
+    // Aggregate totals
+    const totalUsed = models.reduce((sum, m) => sum + m.usedPrompts, 0);
+    const totalRemaining = models.reduce((sum, m) => sum + m.remainingPrompts, 0);
+    const totalAll = totalUsed + totalRemaining;
+    const overallPct = totalAll > 0 ? Math.round((totalUsed / totalAll) * 100) : 0;
+
+    // Nearest window reset (earliest)
+    const nearestResetMs = models.length > 0
+      ? Math.min(...models.map((m) => m.windowResetsInMs).filter((ms) => ms > 0))
+      : 0;
+
     return {
-      balance: data.balance ?? data.credit ?? undefined,
-      currency: data.currency ?? "USD",
+      models,
+      summary: {
+        totalUsedPrompts: totalUsed,
+        totalRemainingPrompts: totalRemaining,
+        totalAllPrompts: totalAll,
+        overallUsagePercent: overallPct,
+        nextWindowResetAt: nearestResetMs > 0
+          ? new Date(Date.now() + nearestResetMs).toISOString()
+          : null,
+        nextWindowResetInMs: nearestResetMs,
+      },
     };
   } catch {
     return null;
@@ -36,24 +93,16 @@ async function fetchMiniMaxBalance(): Promise<{
 }
 
 export async function GET() {
-  try {
-    const mxnBalance = await fetchMiniMaxBalance();
+  const usage = await fetchMiniMaxUsage();
 
-    const result = {
-      source: "minimax_api" as const,
-      timestamp: new Date().toISOString(),
-      balance: mxnBalance?.balance ?? null,
-      currency: mxnBalance?.currency ?? "USD",
-      note: mxnBalance?.balance !== undefined
-        ? "Live balance from MiniMax API — this is the source of truth."
-        : "MiniMax API unreachable. Budget card shows estimated cost from session logs.",
-    };
-
-    return NextResponse.json(result);
-  } catch (error) {
-    return NextResponse.json(
-      { error: "Failed to fetch MiniMax balance" },
-      { status: 500 }
-    );
-  }
+  return NextResponse.json({
+    source: "minimax_api",
+    timestamp: new Date().toISOString(),
+    available: usage !== null,
+    models: usage?.models ?? [],
+    summary: usage?.summary ?? null,
+    note: usage
+      ? "Live usage from MiniMax Coding Plan API — per-model prompt counts and window reset timers."
+      : "MiniMax API unreachable or no API key. Check MINIMAX_API_KEY env var.",
+  });
 }
