@@ -101,3 +101,68 @@ export async function getWorkspaceProjects(): Promise<
       isDirectory: entry.isDirectory(),
     }));
 }
+
+export async function addTaskToDailyLog(taskContent: string): Promise<void> {
+  const today = new Date();
+  const dateStr = today.toISOString().split("T")[0];
+  const dailyLogPath = path.join(WORKSPACE, "memory", `${dateStr}.md`);
+
+  if (!fs.existsSync(dailyLogPath)) {
+    throw new Error(`Daily log not found: ${dailyLogPath}`);
+  }
+
+  const content = fs.readFileSync(dailyLogPath, "utf-8");
+  const lines = content.split("\n");
+
+  // Find the last task line in the ## Tasks section
+  let tasksSectionIndex = -1;
+  let lastTaskIndex = -1;
+  let insertAfterIndex = -1;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.match(/^##\s+Tasks/i)) {
+      tasksSectionIndex = i;
+      continue;
+    }
+    // Stop at next ## header
+    if (line.match(/^##\s+/) && tasksSectionIndex !== -1 && lastTaskIndex === -1) {
+      break;
+    }
+    if (tasksSectionIndex !== -1) {
+      // Found a task line
+      if (line.match(/^-\s+\[/)) {
+        lastTaskIndex = i;
+      }
+    }
+  }
+
+  if (lastTaskIndex !== -1) {
+    // Insert after the last task
+    insertAfterIndex = lastTaskIndex;
+  } else if (tasksSectionIndex !== -1) {
+    // No tasks found but section exists - insert after the header
+    insertAfterIndex = tasksSectionIndex;
+  } else {
+    // No Tasks section - this shouldn't happen but handle it
+    // Insert before the first ## if any, or at end
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].match(/^##\s+/)) {
+        insertAfterIndex = i - 1;
+        break;
+      }
+    }
+    if (insertAfterIndex === -1) {
+      insertAfterIndex = lines.length - 1;
+    }
+  }
+
+  // Build the new task line
+  const newTaskLine = `- [ ] ${taskContent}`;
+
+  // Insert the new task
+  lines.splice(insertAfterIndex + 1, 0, newTaskLine);
+
+  // Write back
+  fs.writeFileSync(dailyLogPath, lines.join("\n"), "utf-8");
+}
