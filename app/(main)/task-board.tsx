@@ -3,7 +3,7 @@
 import { useState, useTransition, useCallback, useRef, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { CheckCircle2, Circle, Calendar, Plus, X } from "lucide-react";
+import { CheckCircle2, Circle, Plus, X, Edit2, Check, XCircle } from "lucide-react";
 
 interface Task {
   content: string;
@@ -20,13 +20,23 @@ interface TaskBoardProps {
   initialDate: string;
 }
 
+interface SearchResult {
+  snippet: string;
+  file: string;
+}
+
 export default function TaskBoard({ initialTasks, initialDate }: TaskBoardProps) {
   const [tasks, setTasks] = useState<Task[]>(initialTasks);
-  const [dateStr, setDateStr] = useState(initialDate);
+  const [dateStr] = useState(initialDate);
   const [newTask, setNewTask] = useState("");
   const [isPending, startTransition] = useTransition();
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastIdRef = useRef(0);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [tooltipContent, setTooltipContent] = useState<SearchResult | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
 
   const addToast = useCallback((message: string) => {
     const id = ++toastIdRef.current;
@@ -41,7 +51,6 @@ export default function TaskBoard({ initialTasks, initialDate }: TaskBoardProps)
     const taskContent = newTask.trim();
     if (!taskContent) return;
 
-    // Optimistic update - add to list immediately
     const optimisticTask: Task = { content: taskContent, status: "pending" };
     setTasks((prev) => [...prev, optimisticTask]);
     setNewTask("");
@@ -56,42 +65,120 @@ export default function TaskBoard({ initialTasks, initialDate }: TaskBoardProps)
       if (!res.ok) throw new Error("Failed to add task");
 
       addToast("[KITTY]: Task appended to daily log");
-
-      // Trigger revalidation
-      startTransition(() => {
-        // Force a re-render by updating state
-        // The server component will be revalidated via revalidatePath
-      });
     } catch (error) {
-      // Rollback optimistic update
       setTasks((prev) => prev.filter((t) => t !== optimisticTask));
       addToast("[KITTY]: Failed to append task");
     }
+  };
+
+  const handleStartEdit = (index: number) => {
+    setEditingIndex(index);
+    setEditValue(tasks[index].content);
+  };
+
+  const handleSaveEdit = async (index: number) => {
+    const oldTask = tasks[index];
+    const newContent = editValue.trim();
+
+    if (!newContent || newContent === oldTask.content) {
+      setEditingIndex(null);
+      return;
+    }
+
+    // Optimistic update
+    setTasks((prev) =>
+      prev.map((t, i) => (i === index ? { ...t, content: newContent } : t))
+    );
+    setEditingIndex(null);
+
+    try {
+      const res = await fetch("/api/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ oldContent: oldTask.content, newContent }),
+      });
+
+      if (!res.ok) throw new Error("Failed to update task");
+      addToast("[KITTY]: Task updated");
+    } catch (error) {
+      // Rollback
+      setTasks((prev) =>
+        prev.map((t, i) => (i === index ? oldTask : t))
+      );
+      addToast("[KITTY]: Failed to update task");
+    }
+  };
+
+  const handleToggleStatus = async (index: number) => {
+    const task = tasks[index];
+    const newStatus = task.status === "pending" ? "done" : "pending";
+
+    // Optimistic update
+    setTasks((prev) =>
+      prev.map((t, i) => (i === index ? { ...t, status: newStatus } : t))
+    );
+
+    try {
+      const res = await fetch("/api/tasks", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          oldContent: task.content,
+          newStatus: newStatus,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to toggle task");
+      addToast(`[KITTY]: Task marked ${newStatus}`);
+    } catch (error) {
+      // Rollback
+      setTasks((prev) =>
+        prev.map((t, i) => (i === index ? task : t))
+      );
+      addToast("[KITTY]: Failed to toggle task");
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingIndex(null);
+    setEditValue("");
+  };
+
+  // Search for context tooltip on hover
+  const handleMouseEnter = async (index: number, event: React.MouseEvent) => {
+    const task = tasks[index];
+    if (task.status === "done") {
+      setHoveredIndex(index);
+      setTooltipPosition({ x: event.clientX, y: event.clientY });
+
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(task.content.slice(0, 30))}`);
+        const data = await res.json();
+        if (data.results && data.results.length > 0) {
+          const result = data.results[0];
+          if (result.matches && result.matches.length > 0) {
+            setTooltipContent({
+              snippet: result.matches[0].snippet,
+              file: result.file,
+            });
+          }
+        }
+      } catch {
+        setTooltipContent(null);
+      }
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredIndex(null);
+    setTooltipContent(null);
   };
 
   const pendingTasks = tasks.filter((t) => t.status === "pending");
   const doneTasks = tasks.filter((t) => t.status === "done");
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <h1 className="text-2xl font-semibold text-text-primary">Tasks</h1>
-          <Badge variant="outline" className="border-moss text-moss font-mono text-xs">
-            LIVE
-          </Badge>
-        </div>
-        <div className="flex items-center gap-2 text-text-secondary text-sm font-mono">
-          <Calendar className="w-4 h-4" />
-          <span>{dateStr}</span>
-          <span className="text-text-muted">•</span>
-          <span className="text-text-muted">
-            {doneTasks.length}/{tasks.length} completed
-          </span>
-        </div>
-      </div>
-
+    <>
       {/* Quick Add Input */}
       <form onSubmit={handleAddTask} className="mb-8">
         <div className="relative">
@@ -134,19 +221,72 @@ export default function TaskBoard({ initialTasks, initialDate }: TaskBoardProps)
             {pendingTasks.length === 0 ? (
               <ZenEmptyState type="pending" />
             ) : (
-              pendingTasks.map((task, i) => (
-                <Card
-                  key={`${task.content}-${i}`}
-                  className="bg-obsidian-light border-border p-4 rounded-xl glow-amber pulse-moss"
-                >
-                  <div className="flex items-start gap-3">
-                    <Circle className="w-5 h-5 text-amber mt-0.5 flex-shrink-0" />
-                    <p className="text-text-primary leading-relaxed font-system text-sm">
-                      {task.content}
-                    </p>
-                  </div>
-                </Card>
-              ))
+              pendingTasks.map((task, i) => {
+                const actualIndex = tasks.findIndex((t) => t === task);
+                return (
+                  <Card
+                    key={`${task.content}-${i}`}
+                    className="bg-obsidian-light border-border p-4 rounded-xl glow-amber pulse-moss group"
+                    onMouseEnter={(e) => handleMouseEnter(actualIndex, e)}
+                    onMouseLeave={handleMouseLeave}
+                  >
+                    <div className="flex items-start gap-3">
+                      {editingIndex === actualIndex ? (
+                        <div className="flex-1 flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            className="flex-1 bg-obsidian border border-border rounded px-2 py-1 text-text-primary font-mono text-sm focus:outline-none focus:border-moss"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleSaveEdit(actualIndex);
+                              if (e.key === "Escape") handleCancelEdit();
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleSaveEdit(actualIndex)}
+                            className="text-moss hover:bg-moss/10 p-1 rounded"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCancelEdit}
+                            className="text-text-muted hover:bg-obsidian p-1 rounded"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStatus(actualIndex)}
+                            className="mt-0.5"
+                          >
+                            <Circle className="w-5 h-5 text-amber flex-shrink-0" />
+                          </button>
+                          <p
+                            className="flex-1 text-text-primary leading-relaxed font-system text-sm cursor-pointer hover:text-moss transition-colors"
+                            onClick={() => handleStartEdit(actualIndex)}
+                          >
+                            {task.content}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => handleStartEdit(actualIndex)}
+                            className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-moss transition-all"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })
             )}
           </div>
         </div>
@@ -167,19 +307,72 @@ export default function TaskBoard({ initialTasks, initialDate }: TaskBoardProps)
             {doneTasks.length === 0 ? (
               <ZenEmptyState type="done" />
             ) : (
-              doneTasks.map((task, i) => (
-                <Card
-                  key={`${task.content}-${i}`}
-                  className="bg-obsidian-light border-border p-4 rounded-xl opacity-70"
-                >
-                  <div className="flex items-start gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-moss mt-0.5 flex-shrink-0" />
-                    <p className="text-text-secondary leading-relaxed line-through font-system text-sm">
-                      {task.content}
-                    </p>
-                  </div>
-                </Card>
-              ))
+              doneTasks.map((task, i) => {
+                const actualIndex = tasks.findIndex((t) => t === task);
+                return (
+                  <Card
+                    key={`${task.content}-${i}`}
+                    className="bg-obsidian-light border-border p-4 rounded-xl opacity-70 group"
+                    onMouseEnter={(e) => handleMouseEnter(actualIndex, e)}
+                    onMouseLeave={handleMouseLeave}
+                  >
+                    <div className="flex items-start gap-3">
+                      {editingIndex === actualIndex ? (
+                        <div className="flex-1 flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            className="flex-1 bg-obsidian border border-border rounded px-2 py-1 text-text-primary font-mono text-sm focus:outline-none focus:border-moss"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleSaveEdit(actualIndex);
+                              if (e.key === "Escape") handleCancelEdit();
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleSaveEdit(actualIndex)}
+                            className="text-moss hover:bg-moss/10 p-1 rounded"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCancelEdit}
+                            className="text-text-muted hover:bg-obsidian p-1 rounded"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStatus(actualIndex)}
+                            className="mt-0.5"
+                          >
+                            <CheckCircle2 className="w-5 h-5 text-moss flex-shrink-0" />
+                          </button>
+                          <p
+                            className="flex-1 text-text-secondary leading-relaxed line-through font-system text-sm cursor-pointer hover:text-moss transition-colors"
+                            onClick={() => handleStartEdit(actualIndex)}
+                          >
+                            {task.content}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => handleStartEdit(actualIndex)}
+                            className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-moss transition-all"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </Card>
+                );
+              })
             )}
           </div>
         </div>
@@ -212,7 +405,21 @@ export default function TaskBoard({ initialTasks, initialDate }: TaskBoardProps)
           </div>
         ))}
       </div>
-    </div>
+
+      {/* Context Tooltip */}
+      {hoveredIndex !== null && tooltipContent && (
+        <div
+          className="fixed z-50 bg-obsidian-light border border-violet/30 px-3 py-2 rounded-lg shadow-lg max-w-sm pointer-events-none"
+          style={{
+            left: tooltipPosition.x + 10,
+            top: tooltipPosition.y + 10,
+          }}
+        >
+          <p className="text-xs text-text-muted font-mono mb-1">{tooltipContent.file}</p>
+          <p className="text-sm text-text-secondary" dangerouslySetInnerHTML={{ __html: tooltipContent.snippet }} />
+        </div>
+      )}
+    </>
   );
 }
 

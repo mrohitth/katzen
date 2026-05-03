@@ -166,3 +166,51 @@ export async function addTaskToDailyLog(taskContent: string): Promise<void> {
   // Write back
   fs.writeFileSync(dailyLogPath, lines.join("\n"), "utf-8");
 }
+
+export async function updateTaskInDailyLog(
+  oldContent: string,
+  newContent?: string,
+  newStatus?: "pending" | "done"
+): Promise<void> {
+  const today = new Date();
+  const dateStr = today.toISOString().split("T")[0];
+  const dailyLogPath = path.join(WORKSPACE, "memory", `${dateStr}.md`);
+
+  if (!fs.existsSync(dailyLogPath)) {
+    throw new Error(`Daily log not found: ${dailyLogPath}`);
+  }
+
+  const content = fs.readFileSync(dailyLogPath, "utf-8");
+  const lines = content.split("\n");
+
+  // Find and replace the specific task line
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const match = line.match(/^-\s+\[([x\s])\]\s+(.+)/i);
+    if (match) {
+      const taskContent = match[2].trim();
+      if (taskContent === oldContent) {
+        // Build replacement line
+        let newLine = line;
+        if (newStatus !== undefined) {
+          const checkbox = newStatus === "done" ? "x" : " ";
+          newLine = line.replace(/^-\s+\[([x\s])\]/, `- [${checkbox}]`);
+        }
+        if (newContent !== undefined && newContent !== oldContent) {
+          newLine = newLine.replace(/^-\s+\[([x\s])\]\s+.+/, `- [${newStatus === "done" ? "x" : match[1] === "x" ? "x" : " "}] ${newContent}`);
+        }
+        lines[i] = newLine;
+        fs.writeFileSync(dailyLogPath, lines.join("\n"), "utf-8");
+        return;
+      }
+    }
+  }
+
+  throw new Error(`Task not found: ${oldContent}`);
+}
+
+export async function getTopPriorityTask(): Promise<Task | null> {
+  const { tasks } = await getDailyTasks();
+  const pending = tasks.filter((t) => t.status === "pending");
+  return pending.length > 0 ? pending[0] : null;
+}
