@@ -9,6 +9,7 @@ export const revalidate = 0;
 interface CronJob {
   id: string;
   name: string;
+  description: string;
   schedule: string;
   scheduleKind: string;
   timezone?: string;
@@ -21,6 +22,23 @@ interface CronJob {
 }
 
 const SESSIONS_DIR = "/home/mathew/.openclaw/agents/main/sessions";
+
+
+const CRON_DESCRIPTIONS: Record<string, string> = {
+  "Bitty Wiki Correction Monitor":
+    "Bitty scans /wiki every 15 min for new docs contradicting Correction Ledger (Snowflake/Spark/Kafka/Snowflake mentions) — alerts to Telegram if found",
+  "Mitty Security Audit \u2014 Daily 11 PM EST":
+    "Mitty runs full security audit (SSH, firewall, updates, exposure) at 11 PM Eastern — logs findings to memory/YYYY-MM-DD.md",
+  "Capital Pilot Daily Brief":
+    "MarketBot delivers morning brief to Telegram: budget pacing, portfolio drift, market signals, profit scanner",
+  "Kitty Heartbeat":
+    "Kitty checks task status, market signals, budget burn — autonomous workspace health pulse every 30 min",
+};
+
+
+function describeJob(name: string): string {
+  return CRON_DESCRIPTIONS[name] || "Cron job — see scheduler for details";
+}
 
 export async function GET() {
   try {
@@ -44,6 +62,7 @@ export async function GET() {
         cronJobs = jobs.map((j: any) => ({
           id: j.id || "",
           name: j.name || "Unnamed",
+          description: describeJob(j.name || ""),
           schedule: j.schedule?.expr || j.schedule?.everyMs ? JSON.stringify(j.schedule) : "unknown",
           scheduleKind: j.schedule?.kind || "unknown",
           timezone: j.schedule?.tz,
@@ -89,6 +108,7 @@ export async function GET() {
       const heartbeatJob: CronJob = {
         id: "heartbeat",
         name: "Kitty Heartbeat",
+        description: describeJob("Kitty Heartbeat"),
         schedule: "*/30 * * * *",
         scheduleKind: "cron",
         nextRun: new Date(nextHeartbeatMs).toISOString(),

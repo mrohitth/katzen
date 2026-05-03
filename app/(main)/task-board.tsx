@@ -45,7 +45,7 @@ export default function TaskBoard({ initialTasks, initialDate }: TaskBoardProps)
   const [tooltipContent, setTooltipContent] = useState<SearchResult | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [scheduledJobs, setScheduledJobs] = useState<{
-    id: string; name: string; schedule: string; scheduleKind: string;
+    id: string; name: string; description?: string; schedule: string; scheduleKind: string;
     nextRun: string | null; nextRunMs: number | null; status: string; delivery: string;
   }[]>([]);
   const [lastFetchAt, setLastFetchAt] = useState<number>(Date.now());
@@ -476,6 +476,9 @@ export default function TaskBoard({ initialTasks, initialDate }: TaskBoardProps)
                           {job.name}
                         </p>
                         <p className="text-text-muted text-xs font-mono mt-0.5">{scheduleLabel}</p>
+                        {job.description && (
+                          <p className="text-text-secondary text-xs mt-1 leading-relaxed">{job.description}</p>
+                        )}
                         {nextRun && (
                           <p className="text-violet/70 text-xs font-mono mt-1">
                             Next: {nextRun.toLocaleString([], {month:"short",day:"numeric",hour:"2-digit",minute:"2-digit",timeZoneName:"short"})}
