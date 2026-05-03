@@ -6,6 +6,7 @@ import {
   MemoryStick,
   Sparkles,
   GitBranch,
+  Terminal,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -16,6 +17,7 @@ const navItems = [
   { href: "/memory", icon: MemoryStick, label: "Memory" },
   { href: "/docs", icon: FileText, label: "Docs" },
   { href: "/zen", icon: Sparkles, label: "Zen Office" },
+  { href: "/alerts", icon: Terminal, label: "Alerts" },
 ];
 
 export default function NavRail() {
