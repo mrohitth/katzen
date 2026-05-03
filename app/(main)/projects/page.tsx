@@ -4,7 +4,22 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Folder, FileText, PlusCircle, GitBranch, Star, Eye, Bug, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  Folder,
+  FileText,
+  GitBranch,
+  Star,
+  Eye,
+  Bug,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Clock,
+  Zap,
+  DollarSign,
+  BarChart3,
+} from "lucide-react";
 
 interface GitHubStats {
   stars: number;
@@ -24,19 +39,47 @@ interface MarketQuote {
   signal: "BULL" | "BEAR" | "NEUTRAL";
 }
 
+interface SchedulerData {
+  jobs: { name: string; schedule: string; nextRun: string | null; status: string }[];
+  nextRun: string | null;
+  nextRunName: string | null;
+}
+
+interface UsageData {
+  today: {
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+    estimatedCost: number;
+    sessionCount: number;
+  };
+  budget: {
+    daily: number;
+    remaining: number;
+    percentUsed: number;
+    status: string;
+  };
+  model: {
+    name: string;
+    inputCostPer1M: number;
+    outputCostPer1M: number;
+  };
+}
+
 export default function ProjectsPage() {
   const [githubStats, setGithubStats] = useState<GitHubStats | null>(null);
   const [marketData, setMarketData] = useState<MarketQuote[]>([]);
+  const [schedulerData, setSchedulerData] = useState<SchedulerData | null>(null);
+  const [usageData, setUsageData] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [countdown, setCountdown] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch GitHub stats
     fetch("/api/github/stats")
       .then((res) => res.json())
       .then((data) => {
-        if (data.stats) {
-          setGithubStats(data.stats);
-        }
+        if (data.stats) setGithubStats(data.stats);
       })
       .catch(console.error);
 
@@ -44,13 +87,56 @@ export default function ProjectsPage() {
     fetch("/api/market/signal")
       .then((res) => res.json())
       .then((data) => {
-        if (data.quotes) {
-          setMarketData(data.quotes);
-        }
+        if (data.quotes) setMarketData(data.quotes);
+      })
+      .catch(console.error);
+
+    // Fetch scheduler data
+    fetch("/api/scheduler")
+      .then((res) => res.json())
+      .then((data) => {
+        setSchedulerData(data);
+      })
+      .catch(console.error);
+
+    // Fetch usage data
+    fetch("/api/usage")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.error) setUsageData(data);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  // Countdown timer
+  useEffect(() => {
+    if (!schedulerData?.nextRun) {
+      setCountdown(null);
+      return;
+    }
+
+    const updateCountdown = () => {
+      const nextRun = new Date(schedulerData.nextRun!).getTime();
+      const now = Date.now();
+      const diff = nextRun - now;
+
+      if (diff <= 0) {
+        setCountdown("00:00");
+        return;
+      }
+
+      const minutes = Math.floor(diff / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      setCountdown(
+        `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+      );
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [schedulerData?.nextRun]);
 
   const projects = [
     {
@@ -82,6 +168,128 @@ export default function ProjectsPage() {
         <p className="text-text-secondary text-sm">
           Workspace directories and tracked repositories
         </p>
+      </div>
+
+      {/* Scheduler & Usage Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        {/* Scheduler Card */}
+        <Card className="bg-obsidian-light border-border rounded-xl p-5 glow-amber">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-amber/10 flex items-center justify-center">
+              <Clock className="w-4 h-4 text-amber" />
+            </div>
+            <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider">
+              Next Heartbeat
+            </h2>
+            <Badge
+              variant="secondary"
+              className="bg-amber/10 text-amber border-amber/20 font-mono text-xs animate-pulse"
+            >
+              SCHEDULED
+            </Badge>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-text-muted text-xs mb-1">Next Run In</p>
+              <p className="text-2xl font-mono text-amber">
+                {countdown || "--:--"}
+              </p>
+              <p className="text-text-muted text-xs mt-1">
+                {schedulerData?.nextRunName || "Heartbeat"}
+              </p>
+            </div>
+            {schedulerData?.jobs && schedulerData.jobs.length > 0 && (
+              <div className="text-right">
+                <p className="text-text-muted text-xs">All Jobs</p>
+                <p className="text-text-primary font-mono">
+                  {schedulerData.jobs.length}
+                </p>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Resource Consumption Card */}
+        <Card className="bg-obsidian-light border-border rounded-xl p-5 glow-moss">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-moss/10 flex items-center justify-center">
+              <DollarSign className="w-4 h-4 text-moss" />
+            </div>
+            <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider">
+              Budget Card
+            </h2>
+            <Badge
+              variant="secondary"
+              className={`font-mono text-xs ${
+                usageData?.budget.status === "OVER_BUDGET"
+                  ? "bg-amber/10 text-amber border-amber/20"
+                  : "bg-moss/10 text-moss border-moss/20"
+              }`}
+            >
+              {usageData?.budget.status || "OK"}
+            </Badge>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center gap-3 text-text-muted">
+              <div className="w-4 h-4 rounded-full border-2 border-moss/30 border-t-moss animate-spin" />
+              <span className="text-sm font-mono">Calculating...</span>
+            </div>
+          ) : usageData ? (
+            <div className="space-y-3">
+              {/* Progress bar */}
+              <div className="h-2 bg-obsidian rounded-full overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-500 ${
+                    usageData.budget.percentUsed > 80
+                      ? "bg-amber"
+                      : "bg-moss"
+                  }`}
+                  style={{ width: `${Math.min(100, usageData.budget.percentUsed)}%` }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-text-muted text-xs">Daily Burn</p>
+                  <p className="text-text-primary font-mono text-lg">
+                    ${usageData.today.estimatedCost.toFixed(4)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-text-muted text-xs">Budget</p>
+                  <p className="text-text-primary font-mono">
+                    ${usageData.budget.daily.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="p-2 rounded bg-obsidian/50">
+                  <p className="text-text-muted text-xs">Tokens</p>
+                  <p className="text-text-primary font-mono text-sm">
+                    {(usageData.today.totalTokens / 1000).toFixed(1)}k
+                  </p>
+                </div>
+                <div className="p-2 rounded bg-obsidian/50">
+                  <p className="text-text-muted text-xs">Sessions</p>
+                  <p className="text-text-primary font-mono text-sm">
+                    {usageData.today.sessionCount}
+                  </p>
+                </div>
+                <div className="p-2 rounded bg-obsidian/50">
+                  <p className="text-text-muted text-xs">Remaining</p>
+                  <p className="text-moss font-mono text-sm">
+                    ${usageData.budget.remaining.toFixed(2)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-text-muted text-sm font-mono">Unable to load usage data</p>
+          )}
+        </Card>
       </div>
 
       {/* GitHub Stats Card */}
@@ -223,14 +431,9 @@ export default function ProjectsPage() {
                   <p className="text-text-primary text-sm font-medium group-hover:text-moss transition-colors">
                     mrohitth/katzen
                   </p>
-                  <p className="text-text-muted text-xs font-mono">
-                    Mission Control Dashboard
-                  </p>
+                  <p className="text-text-muted text-xs font-mono">Mission Control Dashboard</p>
                 </div>
-                <Badge
-                  variant="secondary"
-                  className="bg-obsidian text-text-muted font-mono text-xs"
-                >
+                <Badge variant="secondary" className="bg-obsidian text-text-muted font-mono text-xs">
                   Primary
                 </Badge>
               </div>
@@ -252,14 +455,9 @@ export default function ProjectsPage() {
                   <p className="text-text-primary text-sm font-medium group-hover:text-moss transition-colors">
                     mrohitth/personal
                   </p>
-                  <p className="text-text-muted text-xs font-mono">
-                    Personal workspace
-                  </p>
+                  <p className="text-text-muted text-xs font-mono">Personal workspace</p>
                 </div>
-                <Badge
-                  variant="secondary"
-                  className="bg-obsidian text-text-muted font-mono text-xs"
-                >
+                <Badge variant="secondary" className="bg-obsidian text-text-muted font-mono text-xs">
                   Support
                 </Badge>
               </div>
@@ -281,17 +479,13 @@ export default function ProjectsPage() {
                 <span className="text-text-primary font-mono text-sm font-medium">
                   {quote.symbol}
                 </span>
-                <span className="text-text-primary font-mono">
-                  ${quote.price.toFixed(2)}
-                </span>
+                <span className="text-text-primary font-mono">${quote.price.toFixed(2)}</span>
                 <div className="flex items-center gap-1">
                   {quote.signal === "BULL" && <TrendingUp className="w-3 h-3 text-moss" />}
                   {quote.signal === "BEAR" && <TrendingDown className="w-3 h-3 text-amber" />}
                   {quote.signal === "NEUTRAL" && <Minus className="w-3 h-3 text-text-muted" />}
                   <span
-                    className={`text-xs font-mono ${
-                      quote.change >= 0 ? "text-moss" : "text-amber"
-                    }`}
+                    className={`text-xs font-mono ${quote.change >= 0 ? "text-moss" : "text-amber"}`}
                   >
                     {quote.change >= 0 ? "+" : ""}
                     {quote.changePercent.toFixed(2)}%
@@ -300,9 +494,7 @@ export default function ProjectsPage() {
               </div>
             ))}
           </div>
-          <div className="text-text-muted text-xs font-mono">
-            AI/SEMICONDUCTOR FOCUS
-          </div>
+          <div className="text-text-muted text-xs font-mono">AI/SEMICONDUCTOR FOCUS</div>
         </div>
       </div>
     </div>
