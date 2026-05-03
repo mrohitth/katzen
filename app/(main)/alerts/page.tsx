@@ -236,16 +236,25 @@ export default function AlertsPage() {
   }, [alerts]);
 
   const handleVote = async (id: string) => {
+    const optimistic = ideas.find((i) => i.id === id)?.votes ?? 0;
+    // Optimistic update immediately
+    setIdeas((prev) =>
+      prev.map((i) => (i.id === id ? { ...i, votes: i.votes + 1 } : i))
+    );
     try {
-      await fetch("/api/alerts", {
+      const res = await fetch("/api/alerts", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "vote_idea", id }),
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    } catch (err) {
+      // Revert optimistic update on failure
       setIdeas((prev) =>
-        prev.map((i) => (i.id === id ? { ...i, votes: i.votes + 1 } : i))
+        prev.map((i) => (i.id === id ? { ...i, votes: optimistic } : i))
       );
-    } catch {}
+      console.error("[handleVote]", err);
+    }
   };
 
   const showToast = (msg: string) => {
