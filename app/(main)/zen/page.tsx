@@ -41,6 +41,11 @@ interface SearchResult {
   matches: { line: number; content: string; snippet: string }[];
 }
 
+interface HeartbeatData {
+  heartbeatCount: number;
+  incubatorProgress: number;
+}
+
 export default function ZenOfficePage() {
   const [agents, setAgents] = useState<Agent[]>([
     {
@@ -84,6 +89,8 @@ export default function ZenOfficePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
+  const [heartbeatData, setHeartbeatData] = useState<HeartbeatData | null>(null);
+  const [incubatorProgress, setIncubatorProgress] = useState(30);
 
   const fetchTaskCount = useCallback(async () => {
     try {
@@ -95,7 +102,6 @@ export default function ZenOfficePage() {
       setFlowers(Array.from({ length: bloomCount }));
 
       // Check if there's an in-progress task (deep work mode)
-      // For now, simulate with random chance or if >3 done tasks
       setDeepWorkMode(done >= 3 && Math.random() > 0.5);
     } catch {
       setCompletedTasks(0);
@@ -103,11 +109,29 @@ export default function ZenOfficePage() {
     }
   }, []);
 
+  const fetchHeartbeat = useCallback(async () => {
+    try {
+      const res = await fetch("/api/heartbeat");
+      const data = await res.json();
+      setHeartbeatData(data);
+      // Progress increases with each heartbeat, up to 100%
+      const progress = Math.min(95, data.incubatorProgress);
+      setIncubatorProgress(progress);
+    } catch (e) { console.error(e); }
+  }, []);
+
   useEffect(() => {
     fetchTaskCount();
-    const interval = setInterval(fetchTaskCount, 10000);
-    return () => clearInterval(interval);
-  }, [fetchTaskCount]);
+    fetchHeartbeat();
+
+    const taskInterval = setInterval(fetchTaskCount, 10000);
+    const heartbeatInterval = setInterval(fetchHeartbeat, 30000); // Poll every 30s
+
+    return () => {
+      clearInterval(taskInterval);
+      clearInterval(heartbeatInterval);
+    };
+  }, [fetchTaskCount, fetchHeartbeat]);
 
   const handleAgentClick = async (agentId: string) => {
     try {
@@ -360,17 +384,19 @@ export default function ZenOfficePage() {
                 </Card>
               </button>
 
-              {/* Incubator Progress Bar for in_stasis agents */}
+              {/* Incubator Progress Bar - Grows with heartbeat count */}
               {agent.status === "in_stasis" && (
                 <div className="mt-2 px-1">
                   <div className="h-1 bg-obsidian-light rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-amber/30 animate-pulse"
-                      style={{ width: "30%" }}
+                      className="h-full bg-amber transition-all duration-1000 ease-out"
+                      style={{ width: `${incubatorProgress}%` }}
                     />
                   </div>
                   <p className="text-text-muted text-xs text-center mt-1 font-mono">
-                    Initializing...
+                    {heartbeatData
+                      ? `Heartbeat #${heartbeatData.heartbeatCount}`
+                      : "Initializing..."}
                   </p>
                 </div>
               )}

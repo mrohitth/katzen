@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { useRouter } from "next/navigation";
 import {
   Folder,
   FileText,
@@ -18,7 +17,8 @@ import {
   Clock,
   Zap,
   DollarSign,
-  BarChart3,
+  PieChart,
+  Cpu,
 } from "lucide-react";
 
 interface GitHubStats {
@@ -66,6 +66,20 @@ interface UsageData {
   };
 }
 
+interface Holding {
+  symbol: string;
+  name: string;
+  allocation: number; // percentage
+  type: "AI_CHIP" | "SEMI_ETF" | "GROWTH_ETF";
+  color: string;
+}
+
+const HOLDINGS: Holding[] = [
+  { symbol: "NVDA", name: "NVIDIA", allocation: 45, type: "AI_CHIP", color: "#4ADE80" },
+  { symbol: "SMH", name: "VanEck Semiconductor ETF", allocation: 35, type: "SEMI_ETF", color: "#A78BFA" },
+  { symbol: "SCHG", name: "Schwab US Growth ETF", allocation: 20, type: "GROWTH_ETF", color: "#FBBF24" },
+];
+
 export default function ProjectsPage() {
   const [githubStats, setGithubStats] = useState<GitHubStats | null>(null);
   const [marketData, setMarketData] = useState<MarketQuote[]>([]);
@@ -75,7 +89,6 @@ export default function ProjectsPage() {
   const [countdown, setCountdown] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch GitHub stats
     fetch("/api/github/stats")
       .then((res) => res.json())
       .then((data) => {
@@ -83,7 +96,6 @@ export default function ProjectsPage() {
       })
       .catch(console.error);
 
-    // Fetch market data
     fetch("/api/market/signal")
       .then((res) => res.json())
       .then((data) => {
@@ -91,7 +103,6 @@ export default function ProjectsPage() {
       })
       .catch(console.error);
 
-    // Fetch scheduler data
     fetch("/api/scheduler")
       .then((res) => res.json())
       .then((data) => {
@@ -99,7 +110,6 @@ export default function ProjectsPage() {
       })
       .catch(console.error);
 
-    // Fetch usage data
     fetch("/api/usage")
       .then((res) => res.json())
       .then((data) => {
@@ -109,7 +119,6 @@ export default function ProjectsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Countdown timer
   useEffect(() => {
     if (!schedulerData?.nextRun) {
       setCountdown(null);
@@ -155,6 +164,18 @@ export default function ProjectsPage() {
     },
   ];
 
+  // Get market data for holdings
+  const getHoldingWithMarket = (symbol: string) => {
+    const quote = marketData.find((q) => q.symbol === symbol);
+    return {
+      ...HOLDINGS.find((h) => h.symbol === symbol),
+      price: quote?.price || 0,
+      change: quote?.change || 0,
+      changePercent: quote?.changePercent || 0,
+      signal: quote?.signal || "NEUTRAL",
+    };
+  };
+
   return (
     <div className="p-8 pb-24">
       {/* Header */}
@@ -170,7 +191,7 @@ export default function ProjectsPage() {
         </p>
       </div>
 
-      {/* Scheduler & Usage Row */}
+      {/* Scheduler & Portfolio Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         {/* Scheduler Card */}
         <Card className="bg-obsidian-light border-border rounded-xl p-5 glow-amber">
@@ -210,87 +231,174 @@ export default function ProjectsPage() {
           </div>
         </Card>
 
-        {/* Resource Consumption Card */}
-        <Card className="bg-obsidian-light border-border rounded-xl p-5 glow-moss">
+        {/* Portfolio Health Card */}
+        <Card className="bg-obsidian-light border-border rounded-xl p-5 glow-violet">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-moss/10 flex items-center justify-center">
-              <DollarSign className="w-4 h-4 text-moss" />
+            <div className="w-8 h-8 rounded-lg bg-violet/10 flex items-center justify-center">
+              <PieChart className="w-4 h-4 text-violet" />
             </div>
             <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider">
-              Budget Card
+              Portfolio Health
             </h2>
-            <Badge
-              variant="secondary"
-              className={`font-mono text-xs ${
-                usageData?.budget.status === "OVER_BUDGET"
-                  ? "bg-amber/10 text-amber border-amber/20"
-                  : "bg-moss/10 text-moss border-moss/20"
-              }`}
-            >
-              {usageData?.budget.status || "OK"}
+            <Badge variant="secondary" className="bg-violet/10 text-violet border-violet/20 font-mono text-xs">
+              AI/SEMI FOCUS
             </Badge>
           </div>
 
-          {loading ? (
-            <div className="flex items-center gap-3 text-text-muted">
-              <div className="w-4 h-4 rounded-full border-2 border-moss/30 border-t-moss animate-spin" />
-              <span className="text-sm font-mono">Calculating...</span>
-            </div>
-          ) : usageData ? (
-            <div className="space-y-3">
-              {/* Progress bar */}
-              <div className="h-2 bg-obsidian rounded-full overflow-hidden">
+          {/* Allocation Bar */}
+          <div className="space-y-3">
+            <div className="h-3 bg-obsidian rounded-full overflow-hidden flex">
+              {HOLDINGS.map((h) => (
                 <div
-                  className={`h-full transition-all duration-500 ${
-                    usageData.budget.percentUsed > 80
-                      ? "bg-amber"
-                      : "bg-moss"
-                  }`}
-                  style={{ width: `${Math.min(100, usageData.budget.percentUsed)}%` }}
+                  key={h.symbol}
+                  className="h-full transition-all duration-500"
+                  style={{
+                    width: `${h.allocation}%`,
+                    backgroundColor: h.color,
+                  }}
+                  title={`${h.symbol}: ${h.allocation}%`}
                 />
-              </div>
+              ))}
+            </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-text-muted text-xs">Daily Burn</p>
-                  <p className="text-text-primary font-mono text-lg">
-                    ${usageData.today.estimatedCost.toFixed(4)}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-text-muted text-xs">Budget</p>
-                  <p className="text-text-primary font-mono">
-                    ${usageData.budget.daily.toFixed(2)}
-                  </p>
-                </div>
-              </div>
+            {/* Holdings Breakdown */}
+            <div className="space-y-2">
+              {HOLDINGS.map((h) => {
+                const market = getHoldingWithMarket(h.symbol);
+                return (
+                  <div key={h.symbol} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: h.color }}
+                      />
+                      <span className="text-text-primary text-sm font-mono">
+                        {h.symbol}
+                      </span>
+                      <span className="text-text-muted text-xs">
+                        {h.allocation}%
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {market.price > 0 && (
+                        <>
+                          <span className="text-text-primary text-sm font-mono">
+                            ${market.price.toFixed(2)}
+                          </span>
+                          <span
+                            className={`text-xs font-mono ${
+                              market.change >= 0 ? "text-moss" : "text-amber"
+                            }`}
+                          >
+                            {market.change >= 0 ? "+" : ""}
+                            {market.changePercent.toFixed(2)}%
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
 
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="p-2 rounded bg-obsidian/50">
-                  <p className="text-text-muted text-xs">Tokens</p>
-                  <p className="text-text-primary font-mono text-sm">
-                    {(usageData.today.totalTokens / 1000).toFixed(1)}k
-                  </p>
-                </div>
-                <div className="p-2 rounded bg-obsidian/50">
-                  <p className="text-text-muted text-xs">Sessions</p>
-                  <p className="text-text-primary font-mono text-sm">
-                    {usageData.today.sessionCount}
-                  </p>
-                </div>
-                <div className="p-2 rounded bg-obsidian/50">
-                  <p className="text-text-muted text-xs">Remaining</p>
-                  <p className="text-moss font-mono text-sm">
-                    ${usageData.budget.remaining.toFixed(2)}
-                  </p>
-                </div>
+            {/* Category Summary */}
+            <div className="flex items-center gap-4 pt-2 border-t border-border/50">
+              <div className="flex items-center gap-1">
+                <Cpu className="w-3 h-3 text-moss" />
+                <span className="text-text-muted text-xs">AI Chips: 45%</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-0.5 bg-violet" />
+                <span className="text-text-muted text-xs">Semi ETF: 35%</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-0.5 bg-amber" />
+                <span className="text-text-muted text-xs">Growth: 20%</span>
               </div>
             </div>
-          ) : (
-            <p className="text-text-muted text-sm font-mono">Unable to load usage data</p>
-          )}
+          </div>
         </Card>
       </div>
+
+      {/* Resource Consumption Card */}
+      <Card className="bg-obsidian-light border-border rounded-xl p-5 mb-8 glow-moss">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-8 h-8 rounded-lg bg-moss/10 flex items-center justify-center">
+            <DollarSign className="w-4 h-4 text-moss" />
+          </div>
+          <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider">
+            Budget Card
+          </h2>
+          <Badge
+            variant="secondary"
+            className={`font-mono text-xs ${
+              usageData?.budget.status === "OVER_BUDGET"
+                ? "bg-amber/10 text-amber border-amber/20"
+                : "bg-moss/10 text-moss border-moss/20"
+            }`}
+          >
+            {usageData?.budget.status || "OK"}
+          </Badge>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center gap-3 text-text-muted">
+            <div className="w-4 h-4 rounded-full border-2 border-moss/30 border-t-moss animate-spin" />
+            <span className="text-sm font-mono">Calculating...</span>
+          </div>
+        ) : usageData ? (
+          <div className="space-y-3">
+            <div className="h-2 bg-obsidian rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all duration-500 ${
+                  usageData.budget.percentUsed > 80
+                    ? "bg-amber"
+                    : "bg-moss"
+                }`}
+                style={{ width: `${Math.min(100, usageData.budget.percentUsed)}%` }}
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-text-muted text-xs">Daily Burn</p>
+                <p className="text-text-primary font-mono text-lg">
+                  ${usageData.today.estimatedCost.toFixed(4)}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-text-muted text-xs">Budget</p>
+                <p className="text-text-primary font-mono">
+                  ${usageData.budget.daily.toFixed(2)}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="p-2 rounded bg-obsidian/50">
+                <p className="text-text-muted text-xs">Tokens</p>
+                <p className="text-text-primary font-mono text-sm">
+                  {(usageData.today.totalTokens / 1000).toFixed(1)}k
+                </p>
+              </div>
+              <div className="p-2 rounded bg-obsidian/50">
+                <p className="text-text-muted text-xs">Sessions</p>
+                <p className="text-text-primary font-mono text-sm">
+                  {usageData.today.sessionCount}
+                </p>
+              </div>
+              <div className="p-2 rounded bg-obsidian/50">
+                <p className="text-text-muted text-xs">Remaining</p>
+                <p className="text-moss font-mono text-sm">
+                  ${usageData.budget.remaining.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p className="text-text-muted text-sm font-mono">Unable to load usage data</p>
+        )}
+      </Card>
 
       {/* GitHub Stats Card */}
       <Card className="bg-obsidian-light border-border rounded-xl p-6 mb-8 glow-moss">
@@ -313,7 +421,6 @@ export default function ProjectsPage() {
           </div>
         ) : githubStats ? (
           <div className="space-y-4">
-            {/* Stats Row */}
             <div className="grid grid-cols-4 gap-4">
               <div className="flex items-center gap-2">
                 <Star className="w-4 h-4 text-amber" />
@@ -339,7 +446,6 @@ export default function ProjectsPage() {
 
             <Separator className="bg-border/50" />
 
-            {/* Recent Commits */}
             <div>
               <h3 className="text-xs font-medium text-text-muted uppercase tracking-wider mb-3">
                 Recent Commits
