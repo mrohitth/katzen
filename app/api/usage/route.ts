@@ -65,9 +65,21 @@ function getSessionsData(): UsageStats {
 
 export async function GET() {
   try {
+    // Fetch live MiniMax balance
+    const mxnRes = await fetch(process.env.OPENCLAW_WORKSPACE
+      ? `${process.env.OPENCLAW_WORKSPACE}/.api-usage/minimax`
+      : "http://localhost:3000/api/usage/minimax",
+      { signal: AbortSignal.timeout(3000) }
+    ).catch(() => null);
+
+    let minimaxBalance: number | null = null;
+    if (mxnRes?.ok) {
+      const mxnData = await mxnRes.json() as { balance?: number };
+      minimaxBalance = mxnData.balance ?? null;
+    }
+
     const stats = getSessionsData();
-    
-    // Daily budget: $1.00/day
+
     const dailyBudget = 1.0;
     const burnRate = stats.estimatedCost;
     const budgetRemaining = Math.max(0, dailyBudget - burnRate);
@@ -86,6 +98,10 @@ export async function GET() {
         remaining: +budgetRemaining.toFixed(4),
         percentUsed: +percentUsed.toFixed(1),
         status: burnRate > dailyBudget ? "OVER_BUDGET" : "OK",
+      },
+      minimax: {
+        balance: minimaxBalance,
+        source: minimaxBalance !== null ? "live" : "unavailable",
       },
       model: {
         name: "MiniMax M2.7",

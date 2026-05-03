@@ -150,22 +150,32 @@ export default function ProjectsPage() {
     return () => clearInterval(interval);
   }, [schedulerData?.nextRun]);
 
-  const projects = [
-    {
-      name: "katzen",
-      path: "/home/mathew/katzen",
-      isDirectory: true,
-      type: "primary",
-      description: "Mission Control Dashboard",
-    },
-    {
-      name: "personal",
-      path: "/home/mathew/personal",
-      isDirectory: false,
-      type: "support",
-      description: "Personal workspace",
-    },
-  ];
+  const [projects, setProjects] = useState<{
+    name: string;
+    path: string;
+    isDirectory: boolean;
+    description: string;
+  }[]>([]);
+  const [loadingProjects, setLoadingProjects] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/projects")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.projects) setProjects(data.projects);
+      })
+      .catch(console.error)
+      .finally(() => setLoadingProjects(false));
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/github/stats")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.stats) setGithubStats(data.stats);
+      })
+      .catch(console.error);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Get market data for holdings
   const getHoldingWithMarket = (symbol: string) => {
@@ -492,47 +502,63 @@ export default function ProjectsPage() {
         )}
       </Card>
 
-      {/* Projects Grid */}
+      {/* Dynamic Projects Grid */}
       <div className="mb-8">
-        <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider mb-4">
-          Workspace
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {projects.map((project) => (
-            <Card
-              key={project.name}
-              className="bg-obsidian-light border-border p-5 rounded-xl glow-violet hover:border-violet/50 transition-colors"
-            >
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-lg bg-violet/10 flex items-center justify-center flex-shrink-0">
-                  {project.isDirectory ? (
-                    <Folder className="w-5 h-5 text-violet" />
-                  ) : (
-                    <FileText className="w-5 h-5 text-violet" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-text-primary font-medium mb-1 truncate">
-                    {project.name}
-                  </h3>
-                  <p className="text-text-muted text-xs font-mono mb-2">
-                    {project.description}
-                  </p>
-                  <Badge
-                    variant="secondary"
-                    className={`font-mono text-xs ${
-                      project.type === "primary"
-                        ? "bg-moss/10 text-moss border-moss/20"
-                        : "bg-violet/10 text-violet border-violet/20"
-                    }`}
-                  >
-                    {project.type}
-                  </Badge>
-                </div>
-              </div>
-            </Card>
-          ))}
+        <div className="flex items-center gap-3 mb-4">
+          <h2 className="text-sm font-medium text-text-secondary uppercase tracking-wider">
+            Discovered Projects
+          </h2>
+          <Badge variant="outline" className="border-violet text-violet font-mono text-xs">
+            {projects.length} FOUND
+          </Badge>
         </div>
+        {loadingProjects ? (
+          <div className="flex items-center gap-3 text-text-muted">
+            <div className="w-4 h-4 rounded-full border-2 border-violet/30 border-t-violet animate-spin" />
+            <span className="text-sm font-mono">Scanning memory/ [PROJECT] tags + workspace/projects/...</span>
+          </div>
+        ) : projects.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {projects.map((project) => (
+              <Card
+                key={project.name}
+                className="bg-obsidian-light border-border p-5 rounded-xl glow-violet hover:border-violet/50 transition-colors"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-violet/10 flex items-center justify-center flex-shrink-0">
+                    {project.isDirectory ? (
+                      <Folder className="w-5 h-5 text-violet" />
+                    ) : (
+                      <FileText className="w-5 h-5 text-violet" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-text-primary font-medium mb-1 truncate">
+                      {project.name}
+                    </h3>
+                    <p className="text-text-muted text-xs font-mono mb-2">
+                      {project.description}
+                    </p>
+                    <Badge
+                      variant="secondary"
+                      className={`font-mono text-xs ${
+                        project.isDirectory
+                          ? "bg-violet/10 text-violet border-violet/20"
+                          : "bg-obsidian text-text-muted"
+                      }`}
+                    >
+                      {project.isDirectory ? "directory" : "tag"}
+                    </Badge>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <p className="text-text-muted text-sm font-mono">
+            No projects found. Add [PROJECT] tags to memory/*.md or create workspace/projects/ folders.
+          </p>
+        )}
       </div>
 
       {/* GitHub Integration */}

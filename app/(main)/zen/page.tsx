@@ -40,7 +40,7 @@ interface HeartbeatData {
 }
 
 export default function ZenOfficePage() {
-  const [agents] = useState<Agent[]>([
+  const [agents, setAgents] = useState<Agent[]>([
     {
       id: "kitty",
       name: "Kitty",
@@ -90,8 +90,8 @@ export default function ZenOfficePage() {
       const bloomCount = Math.min(Math.floor(done / 3), 6);
       setFlowers(Array.from({ length: bloomCount }));
 
-      // Deep Work mode: 3+ completed tasks = Kitty is in deep work
-      setDeepWorkMode(done >= 3);
+      // Deep Work mode: 10+ completed tasks = Kitty is in deep work
+      setDeepWorkMode(done >= 10);
     } catch {
       setCompletedTasks(0);
       setFlowers([]);

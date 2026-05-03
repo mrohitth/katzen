@@ -7,6 +7,7 @@ export interface Task {
   content: string;
   status: "pending" | "done";
   assigned?: "K" | "T" | "B"; // Kitty, Titty, Bitty
+  completedAt?: string; // ISO timestamp when marked done
 }
 
 export async function getDailyTasks(): Promise<{ tasks: Task[]; dateStr: string }> {
@@ -31,25 +32,34 @@ export function parseTasksFromMarkdown(content: string): Task[] {
   let inTasksSection = false;
 
   for (const line of lines) {
-    // Look for ## Tasks section
     if (line.match(/^##\s+Tasks/i)) {
       inTasksSection = true;
       continue;
     }
 
-    // Stop at next ## header
     if (line.match(/^##\s+/) && inTasksSection) {
       break;
     }
 
     if (inTasksSection) {
-      // Parse - [ ] or - [x]
-      const match = line.match(/^-\s+\[(x| )\]\s+(?:\[([KTB])\]\s+)?(.+)/i);
-      if (match) {
+      // Match done tasks: - [x] [K] content (2026-05-03T12:00:00)
+      const doneMatch = line.match(/^-\s+\[x\]\s+(?:\[([KTB])\]\s+)?(.+?)(?:\s+\(([^)]+)\))?\s*$/i);
+      if (doneMatch) {
         tasks.push({
-          status: match[1].toLowerCase() === "x" ? "done" : "pending",
-          assigned: match[2]?.toUpperCase() as "K" | "T" | "B" | undefined,
-          content: match[3].trim(),
+          status: "done",
+          assigned: doneMatch[1]?.toUpperCase() as "K" | "T" | "B" | undefined,
+          content: doneMatch[2].trim(),
+          completedAt: doneMatch[3] || undefined,
+        });
+        continue;
+      }
+      // Match pending tasks: - [ ] [K] content
+      const pendingMatch = line.match(/^-\s+\[ \]\s+(?:\[([KTB])\]\s+)?(.+)/i);
+      if (pendingMatch) {
+        tasks.push({
+          status: "pending",
+          assigned: pendingMatch[1]?.toUpperCase() as "K" | "T" | "B" | undefined,
+          content: pendingMatch[2].trim(),
         });
       }
     }
@@ -90,18 +100,44 @@ export async function getLongTermMemory(): Promise<{ content: string } | null> {
 }
 
 export async function getWorkspaceProjects(): Promise<
-  { name: string; path: string; isDirectory: boolean }[]
+  { name: string; path: string; isDirectory: boolean; description?: string }[]
 > {
-  const systemFolders = ["memory", ".openclaw", "node_modules", ".git"];
-  const entries = fs.readdirSync(WORKSPACE, { withFileTypes: true });
+  // Scan memory/ for [PROJECT] tags
+  const projects: { name: string; path: string; isDirectory: boolean; description?: string }[] = [];
+  const memoryDir = path.join(WORKSPACE, "memory");
+  if (fs.existsSync(memoryDir)) {
+    const files = fs.readdirSync(memoryDir).filter((f) => f.endsWith(".md"));
+    for (const file of files) {
+      const content = fs.readFileSync(path.join(memoryDir, file), "utf-8");
+      const projectMatches = content.matchAll(/\[PROJECT\]\s*(.+?)(?:\n|$)/gi);
+      for (const match of projectMatches) {
+        const name = match[1].trim();
+        if (name && !projects.find((p) => p.name === name)) {
+          projects.push({ name, path: "", isDirectory: false, description: `[PROJECT] tag in ${file}` });
+        }
+      }
+    }
+  }
 
-  return entries
-    .filter((entry) => !systemFolders.includes(entry.name))
-    .map((entry) => ({
-      name: entry.name,
-      path: path.join(WORKSPACE, entry.name),
-      isDirectory: entry.isDirectory(),
-    }));
+  // Scan workspace/projects/ for directories
+  const projectsDir = path.join(WORKSPACE, "projects");
+  if (fs.existsSync(projectsDir)) {
+    const entries = fs.readdirSync(projectsDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const readmePath = path.join(projectsDir, entry.name, "README.md");
+        let description = "Project directory";
+        if (fs.existsSync(readmePath)) {
+          const readme = fs.readFileSync(readmePath, "utf-8");
+          const firstLine = readme.split("\n").find((l) => l.trim() && !l.trim().startsWith("#"));
+          if (firstLine) description = firstLine.trim().slice(0, 80);
+        }
+        projects.push({ name: entry.name, path: path.join(projectsDir, entry.name), isDirectory: true, description });
+      }
+    }
+  }
+
+  return projects;
 }
 
 export async function addTaskToDailyLog(
@@ -119,7 +155,6 @@ export async function addTaskToDailyLog(
   const content = fs.readFileSync(dailyLogPath, "utf-8");
   const lines = content.split("\n");
 
-  // Find the last task line in the ## Tasks section
   let tasksSectionIndex = -1;
   let lastTaskIndex = -1;
   let insertAfterIndex = -1;
@@ -130,12 +165,10 @@ export async function addTaskToDailyLog(
       tasksSectionIndex = i;
       continue;
     }
-    // Stop at next ## header
     if (line.match(/^##\s+/) && tasksSectionIndex !== -1 && lastTaskIndex === -1) {
       break;
     }
     if (tasksSectionIndex !== -1) {
-      // Found a task line
       if (line.match(/^-\s+\[/)) {
         lastTaskIndex = i;
       }
@@ -143,14 +176,10 @@ export async function addTaskToDailyLog(
   }
 
   if (lastTaskIndex !== -1) {
-    // Insert after the last task
     insertAfterIndex = lastTaskIndex;
   } else if (tasksSectionIndex !== -1) {
-    // No tasks found but section exists - insert after the header
     insertAfterIndex = tasksSectionIndex;
   } else {
-    // No Tasks section - this shouldn't happen but handle it
-    // Insert before the first ## if any, or at end
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].match(/^##\s+/)) {
         insertAfterIndex = i - 1;
@@ -162,14 +191,10 @@ export async function addTaskToDailyLog(
     }
   }
 
-  // Build the new task line with optional agent prefix
   const agentPrefix = assigned ? `[${assigned}] ` : "";
   const newTaskLine = `- [ ] ${agentPrefix}${taskContent}`;
 
-  // Insert the new task
   lines.splice(insertAfterIndex + 1, 0, newTaskLine);
-
-  // Write back
   fs.writeFileSync(dailyLogPath, lines.join("\n"), "utf-8");
 }
 
@@ -189,21 +214,47 @@ export async function updateTaskInDailyLog(
   const content = fs.readFileSync(dailyLogPath, "utf-8");
   const lines = content.split("\n");
 
-  // Find and replace the specific task line
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const match = line.match(/^-\s+\[([x\s])\]\s+(.+)/i);
-    if (match) {
-      const taskContent = match[2].trim();
-      if (taskContent === oldContent) {
-        // Build replacement line
+
+    // Match done task: - [x] [K] content (2026-05-03T12:00:00)
+    const doneMatch = line.match(/^-\s+\[x\]\s+(?:\[([KTB])\]\s+)?(.+?)(?:\s+\(([^)]+)\))?\s*$/i);
+    if (doneMatch) {
+      if (doneMatch[2].trim() === oldContent) {
         let newLine = line;
-        if (newStatus !== undefined) {
-          const checkbox = newStatus === "done" ? "x" : " ";
-          newLine = line.replace(/^-\s+\[([x\s])\]/, `- [${checkbox}]`);
+        if (newStatus === "done") {
+          // Add/update timestamp
+          const ts = new Date().toISOString();
+          newLine = line.replace(/\s+\([^)]+\)\s*$/, "") + ` (${ts})`;
+        } else if (newStatus === "pending") {
+          // Remove checkbox x and timestamp
+          newLine = line.replace(/^-\s+\[x\]/, "- [ ]").replace(/\s+\([^)]+\)/, "");
         }
         if (newContent !== undefined && newContent !== oldContent) {
-          newLine = newLine.replace(/^-\s+\[([x\s])\]\s+.+/, `- [${newStatus === "done" ? "x" : match[1] === "x" ? "x" : " "}] ${newContent}`);
+          const agentPart = doneMatch[1] ? `[${doneMatch[1]}] ` : "";
+          const tsPart = doneMatch[3] ? ` (${doneMatch[3]})` : "";
+          newLine = newStatus === "done"
+            ? `- [x] ${agentPart}${newContent}${tsPart}`
+            : `- [ ] ${agentPart}${newContent}`;
+        }
+        lines[i] = newLine;
+        fs.writeFileSync(dailyLogPath, lines.join("\n"), "utf-8");
+        return;
+      }
+    }
+
+    // Match pending task: - [ ] [K] content
+    const pendingMatch = line.match(/^-\s+\[ \]\s+(?:\[([KTB])\]\s+)?(.+)/i);
+    if (pendingMatch) {
+      if (pendingMatch[2].trim() === oldContent) {
+        let newLine = line;
+        if (newStatus === "done") {
+          const agentPart = pendingMatch[1] ? `[${pendingMatch[1]}] ` : "";
+          const ts = new Date().toISOString();
+          newLine = `- [x] ${agentPart}${oldContent} (${ts})`;
+        } else if (newContent !== undefined) {
+          const agentPart = pendingMatch[1] ? `[${pendingMatch[1]}] ` : "";
+          newLine = `- [ ] ${agentPart}${newContent}`;
         }
         lines[i] = newLine;
         fs.writeFileSync(dailyLogPath, lines.join("\n"), "utf-8");

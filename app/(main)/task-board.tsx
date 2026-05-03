@@ -8,6 +8,8 @@ import { CheckCircle2, Circle, Plus, X, Edit2, Check, XCircle } from "lucide-rea
 interface Task {
   content: string;
   status: "pending" | "done";
+  assigned?: "K" | "T" | "B";
+  completedAt?: string; // ISO timestamp
 }
 
 interface Toast {
@@ -175,7 +177,15 @@ export default function TaskBoard({ initialTasks, initialDate }: TaskBoardProps)
   };
 
   const pendingTasks = tasks.filter((t) => t.status === "pending");
-  const doneTasks = tasks.filter((t) => t.status === "done");
+  // Done tasks sorted by timestamp descending (most recent first)
+  const doneTasks = tasks
+    .filter((t) => t.status === "done")
+    .sort((a, b) => {
+      if (!a.completedAt && !b.completedAt) return 0;
+      if (!a.completedAt) return 1;
+      if (!b.completedAt) return -1;
+      return new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime();
+    });
 
   return (
     <>
@@ -360,6 +370,11 @@ export default function TaskBoard({ initialTasks, initialDate }: TaskBoardProps)
                           >
                             {task.content}
                           </p>
+                          {task.completedAt && (
+                            <span className="text-text-muted text-xs font-mono opacity-60">
+                              {new Date(task.completedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          )}
                           <button
                             type="button"
                             onClick={() => handleStartEdit(actualIndex)}

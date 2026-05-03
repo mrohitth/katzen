@@ -7,6 +7,8 @@ import { Clock, Target } from "lucide-react";
 interface TopTask {
   content: string;
   status: string;
+  assigned?: string;
+  completedAt?: string | null;
 }
 
 interface HUDData {
