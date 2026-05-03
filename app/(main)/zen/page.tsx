@@ -1,18 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Activity, Cpu, MemoryStick, Clock, Zap, Snowflake, Search, X, FileText, Sparkles } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Activity, Cpu, MemoryStick, Clock, Zap, Snowflake, Search, X, FileText } from "lucide-react";
 
 interface Agent {
   id: string;
@@ -21,8 +16,6 @@ interface Agent {
   role: string;
   status: "active" | "idle" | "in_stasis" | "initializing";
   lastActive: string;
-  color: string;
-  glowClass: string;
 }
 
 interface AgentInfo {
@@ -47,7 +40,7 @@ interface HeartbeatData {
 }
 
 export default function ZenOfficePage() {
-  const [agents, setAgents] = useState<Agent[]>([
+  const [agents] = useState<Agent[]>([
     {
       id: "kitty",
       name: "Kitty",
@@ -55,8 +48,6 @@ export default function ZenOfficePage() {
       role: "Chief of Staff",
       status: "active",
       lastActive: "Just now",
-      color: "moss",
-      glowClass: "glow-moss",
     },
     {
       id: "titty",
@@ -65,8 +56,6 @@ export default function ZenOfficePage() {
       role: "Support Agent",
       status: "in_stasis",
       lastActive: "Pending",
-      color: "amber",
-      glowClass: "glow-amber",
     },
     {
       id: "bitty",
@@ -75,8 +64,6 @@ export default function ZenOfficePage() {
       role: "Support Agent",
       status: "in_stasis",
       lastActive: "Pending",
-      color: "amber",
-      glowClass: "glow-amber",
     },
   ]);
 
@@ -98,14 +85,17 @@ export default function ZenOfficePage() {
       const data = await res.json();
       const done = data.doneCount || 0;
       setCompletedTasks(done);
+      
+      // Update flowers based on completed tasks
       const bloomCount = Math.min(Math.floor(done / 3), 6);
       setFlowers(Array.from({ length: bloomCount }));
 
-      // Check if there's an in-progress task (deep work mode)
-      setDeepWorkMode(done >= 3 && Math.random() > 0.5);
+      // Deep Work mode: 3+ completed tasks = Kitty is in deep work
+      setDeepWorkMode(done >= 3);
     } catch {
       setCompletedTasks(0);
       setFlowers([]);
+      setDeepWorkMode(false);
     }
   }, []);
 
@@ -114,10 +104,12 @@ export default function ZenOfficePage() {
       const res = await fetch("/api/heartbeat");
       const data = await res.json();
       setHeartbeatData(data);
-      // Progress increases with each heartbeat, up to 100%
+      // Progress increases with each heartbeat, max 95%
       const progress = Math.min(95, data.incubatorProgress);
       setIncubatorProgress(progress);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error("Failed to fetch heartbeat:", e);
+    }
   }, []);
 
   useEffect(() => {
@@ -125,7 +117,7 @@ export default function ZenOfficePage() {
     fetchHeartbeat();
 
     const taskInterval = setInterval(fetchTaskCount, 10000);
-    const heartbeatInterval = setInterval(fetchHeartbeat, 30000); // Poll every 30s
+    const heartbeatInterval = setInterval(fetchHeartbeat, 30000);
 
     return () => {
       clearInterval(taskInterval);
@@ -139,8 +131,8 @@ export default function ZenOfficePage() {
       const data = await res.json();
       setSelectedAgent(data);
       setAgentSheetOpen(true);
-    } catch (error) {
-      console.error("Failed to fetch agent info:", error);
+    } catch (e) {
+      console.error("Failed to fetch agent info:", e);
     }
   };
 
@@ -151,8 +143,8 @@ export default function ZenOfficePage() {
       const res = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
       const data = await res.json();
       setSearchResults(data.results || []);
-    } catch (error) {
-      console.error("Search failed:", error);
+    } catch (e) {
+      console.error("Search failed:", e);
     } finally {
       setSearching(false);
     }
@@ -211,7 +203,6 @@ export default function ZenOfficePage() {
       {/* Central Avatar Garden */}
       <div className="relative mb-8">
         <Card className="bg-obsidian-light border-border rounded-2xl p-8 mx-auto max-w-lg glow-violet">
-          {/* 8-bit Kitty Avatar */}
           <div className="flex flex-col items-center">
             {/* Mist effect when no activity */}
             {flowers.length === 0 && (
@@ -220,14 +211,14 @@ export default function ZenOfficePage() {
               </div>
             )}
 
-            {/* 8-bit pixel art style avatar - intensified in deep work */}
+            {/* Kitty Avatar - scales up in Deep Work mode */}
             <div
-              className={`w-28 h-28 rounded-xl bg-gradient-to-br from-moss/30 to-violet/30 flex items-center justify-center relative mb-6 transition-all duration-500 ${
-                deepWorkMode ? "scale-110" : ""
+              className={`w-28 h-28 rounded-xl bg-gradient-to-br from-moss/30 to-violet/30 flex items-center justify-center relative mb-6 transition-all duration-700 ${
+                deepWorkMode ? "scale-110" : "scale-100"
               }`}
               style={{
                 boxShadow: deepWorkMode
-                  ? "0 0 50px rgba(74, 222, 128, 0.6), 0 0 100px rgba(74, 222, 128, 0.3)"
+                  ? "0 0 60px rgba(74, 222, 128, 0.7), 0 0 120px rgba(74, 222, 128, 0.4)"
                   : "0 0 30px rgba(74, 222, 128, 0.3)",
               }}
             >
@@ -300,13 +291,11 @@ export default function ZenOfficePage() {
                       : "bg-obsidian-light border-border"
                   }`}
                 >
-                  {/* Mist Effect for in_stasis */}
                   {(agent.status === "in_stasis" || agent.status === "initializing") && (
                     <div className="absolute inset-0 mist-overlay opacity-50" />
                   )}
 
                   <div className="p-6 relative">
-                    {/* Agent Icon */}
                     <div className="flex items-center justify-center mb-4">
                       <div
                         className={`relative ${
@@ -342,7 +331,6 @@ export default function ZenOfficePage() {
                       </div>
                     </div>
 
-                    {/* Agent Info */}
                     <div className="text-center">
                       <h3 className="text-text-primary font-medium mb-1">{agent.name}</h3>
                       <p className="text-text-muted text-xs mb-2">{agent.role}</p>
@@ -364,7 +352,6 @@ export default function ZenOfficePage() {
                       </p>
                     </div>
 
-                    {/* Status-specific decorations */}
                     {agent.status === "in_stasis" && (
                       <div className="absolute top-2 right-2">
                         <Snowflake className="w-4 h-4 text-amber/50 animate-pulse" />
@@ -377,14 +364,13 @@ export default function ZenOfficePage() {
                     )}
                   </div>
 
-                  {/* Activity Glow for active */}
                   {agent.status === "active" && (
                     <div className="absolute inset-0 bg-gradient-radial from-moss/5 to-transparent pointer-events-none" />
                   )}
                 </Card>
               </button>
 
-              {/* Incubator Progress Bar - Grows with heartbeat count */}
+              {/* Incubator Progress Bar */}
               {agent.status === "in_stasis" && (
                 <div className="mt-2 px-1">
                   <div className="h-1 bg-obsidian-light rounded-full overflow-hidden">
