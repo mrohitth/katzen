@@ -1,14 +1,406 @@
 {
   "schema_version": "2.0",
-  "last_updated": "2026-05-03T21:25:25.396Z",
+  "last_updated": "2026-05-09T23:27:45.138533-04:00",
   "recent_activity": [
+    {
+      "filename": "2026-05-09.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/trends/2026-05-09.md",
+      "action": "modified",
+      "summary": "Modified: 2026-05-09.md. Key content: # TrendScout \u2014 2026-05-09 **Status:** scored  ---  ## Trend 1: Toddler Vacation Sleep Regression (Score: 9/10) **Source:...",
+      "timestamp": "2026-05-09T14:05:03.332978+00:00",
+      "size_bytes": 3919
+    },
+    {
+      "filename": "2026-05-08.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/trends/2026-05-08.md",
+      "action": "modified",
+      "summary": "Modified: 2026-05-08.md. Key content: # TrendScout \u2014 2026-05-08 **Status:** scored  ---  ## Trend 1: Toddler Sleep Regression on Vacation **Source:** r/Parent...",
+      "timestamp": "2026-05-08T14:05:07.076074+00:00",
+      "size_bytes": 4367
+    },
+    {
+      "filename": "marketbot.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/projects/marketbot.md",
+      "action": "modified",
+      "summary": "Modified: marketbot.md. Key content: # MarketBot \u2014 The Capital Pilot  **Owner:** [K] Kitty   **Type:** Node.js Financial Strategist   **Status:** \u2705 VERIFIED...",
+      "timestamp": "2026-05-09T21:44:08.697309+00:00",
+      "size_bytes": 3437
+    },
+    {
+      "filename": "data-observability-platform.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/data-observability-platform.md",
+      "action": "modified",
+      "summary": "Modified: data-observability-platform.md. Key content: # Data Observability Platform  **Owner:** [T] Titty   **Repo:** `mrohitth/data-observability-platform`   **Type:** Data...",
+      "timestamp": "2026-05-05T08:47:21.692649+00:00",
+      "size_bytes": 2544
+    },
+    {
+      "filename": "test-sync.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/test-sync.md",
+      "action": "modified",
+      "summary": "Modified: test-sync.md. Key content: test content for katzen sync...",
+      "timestamp": "2026-05-05T08:47:21.696831+00:00",
+      "size_bytes": 29
+    },
+    {
+      "filename": "launch_strategy.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/launch_strategy.md",
+      "action": "modified",
+      "summary": "Modified: launch_strategy.md. Key content: # Market Entry Strategy \u2014 Ragdoll First-Month Protocol  ## Product Summary  A breed-specific Ragdoll Cat Care Notion Tem...",
+      "timestamp": "2026-05-05T08:47:21.693968+00:00",
+      "size_bytes": 12760
+    },
+    {
+      "filename": "batch-analytics-platform.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/batch-analytics-platform.md",
+      "action": "modified",
+      "summary": "Modified: batch-analytics-platform.md. Key content: # Batch Analytics Platform  **Owner:** [T] Titty   **Repo:** `mrohitth/batch-analytics-platform`   **Type:** Data Engine...",
+      "timestamp": "2026-05-05T08:47:21.692649+00:00",
+      "size_bytes": 2662
+    },
+    {
+      "filename": "Data_Engineering_Stack.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/Data_Engineering_Stack.md",
+      "action": "modified",
+      "summary": "Modified: Data_Engineering_Stack.md. Key content: # Data Engineering Stack \u2014 Mathew's Professional Toolkit  **Owner:** [T] Titty   **Type:** Reference \u2014 Professional Stac...",
+      "timestamp": "2026-05-05T08:47:21.692649+00:00",
+      "size_bytes": 2293
+    },
+    {
+      "filename": "katzen-sync-validation.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/katzen-sync-validation.md",
+      "action": "modified",
+      "summary": "Modified: katzen-sync-validation.md. Key content: # Katzen-Sync Test\\nThis validates the real-time bridge....",
+      "timestamp": "2026-05-05T08:47:21.693968+00:00",
+      "size_bytes": 57
+    },
+    {
+      "filename": "katzen-sync-test.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/katzen-sync-test.md",
+      "action": "modified",
+      "summary": "Modified: katzen-sync-test.md. Key content: # Katzen-Sync Test\\nReal-time wiki bridge activated....",
+      "timestamp": "2026-05-05T08:47:21.693968+00:00",
+      "size_bytes": 53
+    },
+    {
+      "filename": "index.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/index.md",
+      "action": "modified",
+      "summary": "Modified: index.md. Key content: # Karpathy LLM Wiki \u2014 Central Node  _\ud83c\udf10 Owner: Witty | Core principle: Obsessive Documentation & Wiki-linking_  > **If it...",
+      "timestamp": "2026-05-05T08:47:21.693968+00:00",
+      "size_bytes": 4628
+    },
+    {
+      "filename": "pain-point-brief-bosch-dishwasher.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/pain-point-brief-bosch-dishwasher.md",
+      "action": "modified",
+      "summary": "Modified: pain-point-brief-bosch-dishwasher.md. Key content: # Bosch Dishwasher \u2014 DIY Repair Anxiety Profile  _Source: General appliance repair knowledge. Web research was limited \u2014...",
+      "timestamp": "2026-05-05T08:47:21.695575+00:00",
+      "size_bytes": 4702
+    },
+    {
+      "filename": "market_benchmarks.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/market_benchmarks.md",
+      "action": "modified",
+      "summary": "Modified: market_benchmarks.md. Key content: # Market Benchmarks \u2014 Notion Template Competitor Analysis  _Source: General marketplace knowledge. Web search was unavai...",
+      "timestamp": "2026-05-05T08:47:21.695575+00:00",
+      "size_bytes": 5954
+    },
+    {
+      "filename": "pain-point-brief-ragdoll.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/pain-point-brief-ragdoll.md",
+      "action": "modified",
+      "summary": "Modified: pain-point-brief-ragdoll.md. Key content: # Ragdoll Cat \u2014 Owner Anxiety Profile  _Source: PetMD breed profile, general veterinary knowledge. Synthesized from web...",
+      "timestamp": "2026-05-05T08:47:21.695575+00:00",
+      "size_bytes": 4207
+    },
+    {
+      "filename": "katzen-final-test.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/katzen-final-test.md",
+      "action": "modified",
+      "summary": "Modified: katzen-final-test.md. Key content: # Katzen-Sync Final Test\\nPipeline validated....",
+      "timestamp": "2026-05-05T08:47:21.693968+00:00",
+      "size_bytes": 46
+    },
+    {
+      "filename": "mitty.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/people/mitty.md",
+      "action": "modified",
+      "summary": "Modified: mitty.md. Key content: # Mitty \ud83d\udd12 \u2014 Security & Audit  **Owner:** Mitty (self-documented)   **Model:** Gemini Flash (Lightweight)   **Emoji:** \ud83d\udd12...",
+      "timestamp": "2026-05-05T08:47:21.696286+00:00",
+      "size_bytes": 1195
+    },
+    {
+      "filename": "witty.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/people/witty.md",
+      "action": "modified",
+      "summary": "Modified: witty.md. Key content: # Witty \ud83c\udf10 \u2014 Memory Architect  **Owner:** Witty (self-documented)   **Model:** DeepSeek (Mid-Tier)   **Emoji:** \ud83d\udcda   **Sta...",
+      "timestamp": "2026-05-05T08:47:21.696286+00:00",
+      "size_bytes": 1915
+    },
+    {
+      "filename": "kitty.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/people/kitty.md",
+      "action": "modified",
+      "summary": "Modified: kitty.md. Key content: # Kitty \ud83d\udc31 \u2014 Chief of Staff / Lead Orchestrator  **Owner:** Kitty (self-documented)   **Model:** Claude 3.5 Sonnet (Flags...",
+      "timestamp": "2026-05-05T08:47:21.696286+00:00",
+      "size_bytes": 2522
+    },
+    {
+      "filename": "titty.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/people/titty.md",
+      "action": "modified",
+      "summary": "Modified: titty.md. Key content: # Titty \ud83d\udd2c \u2014 Technical Lead / Data Engineering  **Owner:** Titty (self-documented)   **Model:** Minimax 01 (Mid-Tier)   *...",
+      "timestamp": "2026-05-05T08:47:21.696286+00:00",
+      "size_bytes": 1635
+    },
+    {
+      "filename": "mathew.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/people/mathew.md",
+      "action": "modified",
+      "summary": "Modified: mathew.md. Key content: # Mathew R. Thomson \u2014 Stakeholder Profile  **Role:** User / Stakeholder | **Location:** Falls Church, VA | **Timezone:**...",
+      "timestamp": "2026-05-05T08:47:21.696286+00:00",
+      "size_bytes": 2698
+    },
+    {
+      "filename": "index.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/people/index.md",
+      "action": "modified",
+      "summary": "Modified: index.md. Key content: # People \u2014 Category Index  _\ud83c\udf10 Owner: Witty_  | Person | Role | Entry | |--------|------|-------| | Mathew R. Thomson | U...",
+      "timestamp": "2026-05-05T08:47:21.696286+00:00",
+      "size_bytes": 827
+    },
+    {
+      "filename": "bitty.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/people/bitty.md",
+      "action": "modified",
+      "summary": "Modified: bitty.md. Key content: # Bitty \ud83c\udf3f \u2014 Routine & Local Privacy Agent  **Owner:** Bitty (self-documented)   **Model:** Llama 3.2 3B (Local, Privacy-...",
+      "timestamp": "2026-05-05T08:47:21.696008+00:00",
+      "size_bytes": 1145
+    },
+    {
+      "filename": "influencer_drafts.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/outreach/influencer_drafts.md",
+      "action": "modified",
+      "summary": "Modified: influencer_drafts.md. Key content: # Influencer Outreach Drafts \u2014 2026-05-04  *Prepared by Witty [W]. Search was unavailable; drafts use archetype profiles...",
+      "timestamp": "2026-05-05T08:47:21.695575+00:00",
+      "size_bytes": 9885
+    },
+    {
+      "filename": "security-baseline.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/patterns/security-baseline.md",
+      "action": "modified",
+      "summary": "Modified: security-baseline.md. Key content: # Security Baseline \u2014 Mitty's Reference Document  **Owner:** [M] Mitty | **Owner:** [K] Kitty   **Type:** Security Patte...",
+      "timestamp": "2026-05-05T08:47:21.696008+00:00",
+      "size_bytes": 5350
+    },
+    {
+      "filename": "cdc-pipeline.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/patterns/cdc-pipeline.md",
+      "action": "modified",
+      "summary": "Modified: cdc-pipeline.md. Key content: # CDC Pipeline \u2014 Change Data Capture Patterns  **Owner:** [T] Titty   **Type:** Engineering Pattern \u2014 Data Pipeline   **...",
+      "timestamp": "2026-05-05T08:47:21.695575+00:00",
+      "size_bytes": 3670
+    },
+    {
+      "filename": "scd-type2.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/patterns/scd-type2.md",
+      "action": "modified",
+      "summary": "Modified: scd-type2.md. Key content: # SCD Type 2 \u2014 Slowly Changing Dimensions Pattern  **Owner:** [T] Titty   **Type:** Engineering Pattern \u2014 Data Modeling...",
+      "timestamp": "2026-05-05T08:47:21.696008+00:00",
+      "size_bytes": 3785
+    },
+    {
+      "filename": "security-audit-protocol.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/patterns/security-audit-protocol.md",
+      "action": "modified",
+      "summary": "Modified: security-audit-protocol.md. Key content: # Security Audit Protocol \u2014 Mitty's Daily 11 PM Eastern Run  **Owner:** [M] Mitty   **Schedule:** 11:00 PM Eastern daily...",
+      "timestamp": "2026-05-05T08:47:21.696008+00:00",
+      "size_bytes": 3200
+    },
+    {
+      "filename": "index.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/patterns/index.md",
+      "action": "modified",
+      "summary": "Modified: index.md. Key content: # Patterns \u2014 Category Index  _\ud83c\udf10 Owner: Witty | \ud83e\udd16 Titty owns CDC/Batch engineering patterns_  | Pattern | Owner | Descrip...",
+      "timestamp": "2026-05-05T08:47:21.696008+00:00",
+      "size_bytes": 1049
+    },
+    {
+      "filename": "2026-05-07.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/trends/2026-05-07.md",
+      "action": "modified",
+      "summary": "Modified: 2026-05-07.md. Key content: # TrendScout \u2014 2026-05-07 **Status:** scored  ---  ## Trend 1: Toddler Vacation Anxiety **Source:** r/Parenting (new) |...",
+      "timestamp": "2026-05-07T14:04:43.708605+00:00",
+      "size_bytes": 3790
+    },
+    {
+      "filename": "2026-05-05.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/trends/2026-05-05.md",
+      "action": "modified",
+      "summary": "Modified: 2026-05-05.md. Key content: # TrendScout Daily \u2014 2026-05-05  **Scout:** MiniMax M2.7 | **Sources:** Reddit (r/Parenting, r/CatAdvice, r/Homeowners)...",
+      "timestamp": "2026-05-05T14:04:39.116744+00:00",
+      "size_bytes": 5560
+    },
+    {
+      "filename": "2026-05-04.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/trends/2026-05-04.md",
+      "action": "modified",
+      "summary": "Modified: 2026-05-04.md. Key content: --- date: 2026-05-04 status: scored agent: mitty tags: [trend-scout, reddit, quora, scored] sources: [r/Parenting, r/Cat...",
+      "timestamp": "2026-05-05T08:47:21.696831+00:00",
+      "size_bytes": 8547
+    },
+    {
+      "filename": "2026-05-06.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/trends/2026-05-06.md",
+      "action": "modified",
+      "summary": "Modified: 2026-05-06.md. Key content: # TrendScout Daily \u2014 2026-05-06  **Scout:** MiniMax M2.7 | **Sources:** Reddit (r/Parenting, r/CatAdvice, r/Homeowners),...",
+      "timestamp": "2026-05-06T14:06:00.657341+00:00",
+      "size_bytes": 6543
+    },
+    {
+      "filename": "crew-roster-v3.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/decisions/crew-roster-v3.md",
+      "action": "modified",
+      "summary": "Modified: crew-roster-v3.md. Key content: # Crew Roster v3 \u2014 5-Agent Crew Established  **Date:** 2026-05-03   **Updated:** 2026-05-03 (v3.3 \u2014 model tier refresh)...",
+      "timestamp": "2026-05-05T08:47:21.693968+00:00",
+      "size_bytes": 2410
+    },
+    {
+      "filename": "heartbeat-hours-format.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/decisions/heartbeat-hours-format.md",
+      "action": "modified",
+      "summary": "Modified: heartbeat-hours-format.md. Key content: # Heartbeat Hours Format \u2014 Countdown Shows Hours When > 60 Minutes  **Date:** 2026-05-03   **Agents:** [K] Kitty   **Tri...",
+      "timestamp": "2026-05-05T08:47:21.693968+00:00",
+      "size_bytes": 1672
+    },
+    {
+      "filename": "model-switch-chief-of-staff.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/decisions/model-switch-chief-of-staff.md",
+      "action": "modified",
+      "summary": "Modified: model-switch-chief-of-staff.md. Key content: # Model Switch \u2014 Chief of Staff to Sonnet 3.5  **Date:** 2026-05-03   **Decision by:** Mathew   **Status:** \u2705 APPROVED...",
+      "timestamp": "2026-05-05T08:47:21.693968+00:00",
+      "size_bytes": 982
+    },
+    {
+      "filename": "portfolio-pl-card.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/decisions/portfolio-pl-card.md",
+      "action": "modified",
+      "summary": "Modified: portfolio-pl-card.md. Key content: # Portfolio P/L Card \u2014 Redesigned to Focus on Profit/Loss  **Date:** 2026-05-03   **Agents:** [K] Kitty   **Trigger:** M...",
+      "timestamp": "2026-05-05T08:47:21.693968+00:00",
+      "size_bytes": 1531
+    },
+    {
+      "filename": "memory-purge.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/decisions/memory-purge.md",
+      "action": "modified",
+      "summary": "Modified: memory-purge.md. Key content: # Memory Purge \u2014 Stack Standardization  **Date:** 2026-05-03   **Decision by:** Mathew   **Status:** \u2705 Standardized  ---...",
+      "timestamp": "2026-05-05T08:47:21.693968+00:00",
+      "size_bytes": 854
+    },
     {
       "filename": "Gateway_Router_Implementation.md",
       "filepath": "/home/mathew/.openclaw/workspace/wiki/decisions/Gateway_Router_Implementation.md",
       "action": "modified",
-      "summary": "Modified: Gateway_Router_Implementation.md. Key content: **Date:** 2026-05-03 **Updated by:** Mathew **Status:** ✅ LIVE — v2.0 --- **Deprecated:** \"Context-Only\" escalation — routing purely based on how much context a task needs..",
-      "timestamp": "2026-05-03T19:52:10.709687+00:00",
-      "size_bytes": 4739
+      "summary": "Modified: Gateway_Router_Implementation.md. Key content: # Gateway Router Implementation \u2014 v2.0  **Date:** 2026-05-03   **Updated by:** Mathew   **Status:** \u2705 LIVE \u2014 v2.0  ---...",
+      "timestamp": "2026-05-05T08:47:21.693968+00:00",
+      "size_bytes": 4801
+    },
+    {
+      "filename": "hybrid-swarm-action-01.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/decisions/hybrid-swarm-action-01.md",
+      "action": "modified",
+      "summary": "Modified: hybrid-swarm-action-01.md. Key content: # Hybrid Swarm Action 01 \u2014 Witty-Bitty Sync Test  **Date:** 2026-05-03 **Agents:** Bitty [B] (local) + Witty [W] (cloud)...",
+      "timestamp": "2026-05-05T08:47:21.693968+00:00",
+      "size_bytes": 1416
+    },
+    {
+      "filename": "index.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/decisions/index.md",
+      "action": "modified",
+      "summary": "Modified: index.md. Key content: # Decisions \u2014 Category Index  _\ud83c\udf10 Owner: Witty | All crew decisions with context, rationale, and outcome_  | Date | Decis...",
+      "timestamp": "2026-05-05T08:47:21.693968+00:00",
+      "size_bytes": 2112
+    },
+    {
+      "filename": "Dynamic_Swarm_Activated.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/decisions/Dynamic_Swarm_Activated.md",
+      "action": "modified",
+      "summary": "Modified: Dynamic_Swarm_Activated.md. Key content: # Dynamic Multi-Model Identity \u2014 Chief of Staff Transition  **Date:** 2026-05-03   **Directive from:** Mathew   **Status...",
+      "timestamp": "2026-05-05T08:47:21.692649+00:00",
+      "size_bytes": 2713
+    },
+    {
+      "filename": "wiki-grounding.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/decisions/wiki-grounding.md",
+      "action": "modified",
+      "summary": "Modified: wiki-grounding.md. Key content: # Wiki Grounding \u2014 /wiki as Authoritative Source  **Date:** 2026-05-03   **Decision by:** Mathew   **Status:** \u2705 LIVE  -...",
+      "timestamp": "2026-05-05T08:47:21.693968+00:00",
+      "size_bytes": 1342
+    },
+    {
+      "filename": "cdc-platform.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/projects/cdc-platform.md",
+      "action": "modified",
+      "summary": "Modified: cdc-platform.md. Key content: # CDC Platform \u2014 Change Data Capture & Historical Warehouse  **Owner:** [T] Titty   **Type:** Data Engineering / ETL   *...",
+      "timestamp": "2026-05-05T08:47:21.696831+00:00",
+      "size_bytes": 3583
+    },
+    {
+      "filename": "marketbot.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/projects/marketbot.md",
+      "action": "modified",
+      "summary": "Modified: marketbot.md. Key content: # MarketBot \u2014 The Capital Pilot  **Owner:** [K] Kitty   **Type:** Node.js Financial Strategist   **Status:** \u2705 VERIFIED...",
+      "timestamp": "2026-05-05T08:47:21.696831+00:00",
+      "size_bytes": 2820
+    },
+    {
+      "filename": "batch-analytics.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/projects/batch-analytics.md",
+      "action": "modified",
+      "summary": "Modified: batch-analytics.md. Key content: # Batch Analytics \u2014 High-Volume Processing  **Owner:** [T] Titty   **Type:** Data Engineering / Analytics   **Status:**...",
+      "timestamp": "2026-05-05T08:47:21.696831+00:00",
+      "size_bytes": 3486
+    },
+    {
+      "filename": "katzen.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/projects/katzen.md",
+      "action": "modified",
+      "summary": "Modified: katzen.md. Key content: # KATZEN \u2014 Kitty's Zen  **Owner:** [K] Kitty   **Type:** Next.js Web Application   **Status:** Phase 1 complete | Phase...",
+      "timestamp": "2026-05-05T08:47:21.696831+00:00",
+      "size_bytes": 3066
+    },
+    {
+      "filename": "index.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/projects/index.md",
+      "action": "modified",
+      "summary": "Modified: index.md. Key content: # Projects \u2014 Category Index  _\ud83c\udf10 Owner: Witty | \ud83e\udd16 Titty owns CDC/Batch entries_  | Entry | Owner | Status | Description |...",
+      "timestamp": "2026-05-05T08:47:21.696831+00:00",
+      "size_bytes": 1314
+    },
+    {
+      "filename": "CDC_Warehouse_SCD2.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/projects/CDC_Warehouse_SCD2.md",
+      "action": "modified",
+      "summary": "Modified: CDC_Warehouse_SCD2.md. Key content: # CDC Warehouse \u2014 SCD Type 2 Implementation  **Owner:** [T] Titty   **Type:** Data Engineering / ETL   **Status:** Produ...",
+      "timestamp": "2026-05-05T08:47:21.696607+00:00",
+      "size_bytes": 4489
+    },
+    {
+      "filename": "alerts_May2026.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/logs/archive/alerts_May2026.md",
+      "action": "modified",
+      "summary": "Modified: alerts_May2026.md. Key content: # Alerts Archive \u2014 May 2026  *Auto-archived entries from alerts_history (manifest.json)*...",
+      "timestamp": "2026-05-05T08:47:21.695575+00:00",
+      "size_bytes": 92
+    },
+    {
+      "filename": "baby_sleep_decoder_DRAFT.md",
+      "filepath": "/home/mathew/.openclaw/workspace/wiki/products/drafts/baby_sleep_decoder_DRAFT.md",
+      "action": "modified",
+      "summary": "Modified: baby_sleep_decoder_DRAFT.md. Key content: # The Baby Sleep Decoder: What's Normal at Every Stage (0-24 Months)  **Version:** Draft 1.0   **Date:** 2026-05-04   **...",
+      "timestamp": "2026-05-05T08:47:21.696607+00:00",
+      "size_bytes": 16524
     }
   ],
   "watched_paths": [
@@ -16,13 +408,57 @@
   ],
   "alerts_history": [
     {
+      "id": "alert-1777850723892",
+      "timestamp": "05/03/2026 19:25:23 EDT",
+      "agent": "MITTY",
+      "status_code": "TEST_ROLLUP",
+      "type": "system",
+      "severity": "info",
+      "message": "Rollup test alert #3",
+      "source": "MITTY",
+      "model": "gemini/gemini-2.5-flash"
+    },
+    {
+      "id": "alert-1777850723357",
+      "timestamp": "05/03/2026 19:25:23 EDT",
+      "agent": "MITTY",
+      "status_code": "TEST_ROLLUP",
+      "type": "system",
+      "severity": "info",
+      "message": "Rollup test alert #2",
+      "source": "MITTY",
+      "model": "gemini/gemini-2.5-flash"
+    },
+    {
+      "id": "alert-1777850722821",
+      "timestamp": "05/03/2026 19:25:22 EDT",
+      "agent": "MITTY",
+      "status_code": "TEST_ROLLUP",
+      "type": "system",
+      "severity": "info",
+      "message": "Rollup test alert #1",
+      "source": "MITTY",
+      "model": "gemini/gemini-2.5-flash"
+    },
+    {
+      "id": "alert-1777850284366",
+      "timestamp": "05/03/2026 19:18:04 EDT",
+      "agent": "MITTY",
+      "status_code": "TEST",
+      "type": "system",
+      "severity": "info",
+      "message": "Time calibration test \u2014 EDT timestamp",
+      "source": "MITTY",
+      "model": "gemini/gemini-2.5-flash"
+    },
+    {
       "id": "alert-1777843525396",
       "timestamp": "2026-05-03T21:25:25.396Z",
       "agent": "MITTY",
       "status_code": "TEST",
       "type": "system",
       "severity": "info",
-      "message": "Cron optimization test — Mitty VRAM monitor routed via Gemini Flash",
+      "message": "Cron optimization test \u2014 Mitty VRAM monitor routed via Gemini Flash",
       "source": "MITTY",
       "model": "gemini/gemini-2.5-flash"
     },
@@ -43,7 +479,7 @@
       "status_code": "OK",
       "type": "system",
       "severity": "info",
-      "message": "HUB STABLE — All systems nominal. KP-002 Alerts & Ideas Hub initialized.",
+      "message": "HUB STABLE \u2014 All systems nominal. KP-002 Alerts & Ideas Hub initialized.",
       "source": "MITTY"
     },
     {
@@ -53,7 +489,7 @@
       "status_code": "OK",
       "type": "system",
       "severity": "info",
-      "message": "Katzen Alerts Hub initialized — Project Kaizen [KP-002]",
+      "message": "Katzen Alerts Hub initialized \u2014 Project Kaizen [KP-002]",
       "source": "KITTY"
     }
   ],
@@ -93,7 +529,62 @@
       "status": "proposed",
       "cycle": "KP-003",
       "grouping_rule": "consecutive same [agent]+[status_code] count >= 5",
-      "summary_template": "X [agent] [status_code] events — last 24h"
+      "summary_template": "X [agent] [status_code] events \u2014 last 24h"
     }
-  }
+  },
+  "agents": [
+    {
+      "id": "kitty",
+      "name": "Kitty",
+      "role": "Chief of Staff",
+      "model": "deepseek/deepseek-chat-v4-pro",
+      "emoji": "\ud83d\udc31",
+      "status": "online",
+      "last_seen": "2026-05-05T01:18:05.560079-04:00",
+      "heartbeat": "2026-05-04T16:50:00Z"
+    },
+    {
+      "id": "witty",
+      "name": "Witty",
+      "role": "Memory Architect",
+      "model": "deepseek/deepseek-chat-v4-flash",
+      "emoji": "\ud83d\udcda",
+      "status": "online",
+      "last_seen": "2026-05-05T01:18:05.560079-04:00",
+      "heartbeat": "2026-05-04T16:50:00Z"
+    },
+    {
+      "id": "mitty",
+      "name": "Mitty",
+      "role": "Security & Audit",
+      "model": "google/gemini-3.1-pro-preview",
+      "emoji": "\ud83d\udd12",
+      "status": "online",
+      "last_seen": "2026-05-05T01:18:05.560079-04:00",
+      "heartbeat": "2026-05-04T16:50:00Z"
+    },
+    {
+      "id": "bitty",
+      "name": "Bitty",
+      "role": "Routine & Local",
+      "model": "llama3.2:3b (local)",
+      "emoji": "\ud83c\udf3f",
+      "status": "offline",
+      "last_seen": "2026-05-05T01:18:05.560079-04:00",
+      "heartbeat": "2026-05-04T16:50:00Z"
+    },
+    {
+      "id": "capital",
+      "name": "Capital",
+      "role": "Market Strategist",
+      "model": "deepseek/deepseek-chat-v4-flash",
+      "emoji": "\ud83d\udcc8",
+      "status": "online",
+      "last_seen": "2026-05-05T01:18:05.560079-04:00",
+      "heartbeat": "2026-05-04T16:50:00Z"
+    }
+  ],
+  "productionStatus": "MiniMax Subscription Active - $200 Tier",
+  "miniMaxTier": "Professional ($200/year)",
+  "miniMaxRateLimit": "4,500 req / 5 hours"
 }

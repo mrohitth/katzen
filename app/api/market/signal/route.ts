@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import fs from "fs";
+import path from "path";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 300; // 5 minute cache
@@ -9,85 +11,171 @@ interface StockQuote {
   change: number;
   changePercent: number;
   signal: "BULL" | "BEAR" | "NEUTRAL";
+  source: "live" | "cached" | "fallback";
 }
 
-// Fetch live quotes from Alpha Vantage (free tier: 25 req/day)
-async function fetchAlphaVantageQuote(symbol: string): Promise<StockQuote | null> {
-  const API_KEY = process.env.ALPHA_VANTAGE_API_KEY || process.env.NEXT_PUBLIC_ALPHA_VANTAGE_API_KEY;
-  if (!API_KEY) return null;
+interface ExpenseInfo {
+  er: number;
+  erFormatted: string;
+  annualFee: number;
+  flagged: boolean;
+}
 
+interface PortfolioPosition {
+  ticker: string;
+  shares: number;
+  marketValue: number;
+  weight: number;
+  currentPrice: number;
+  dayChangePercent: number;
+  expense?: ExpenseInfo;
+}
+
+const MARKETBOT_CACHE = "/home/mathew/MarketBot/data/last-known-prices.json";
+const PORTFOLIO_FILE = "/home/mathew/MarketBot/data/portfolio.json";
+
+// Expense ratios (mirrored from MarketBot types.ts)
+const EXPENSE_RATIOS: Record<string, number> = {
+  "VTI": 0.0003, "VOO": 0.0003, "QQQ": 0.0020, "SCHG": 0.0004,
+  "SMH": 0.0035, "XLE": 0.0009, "XLV": 0.0009, "VXUS": 0.0004,
+  "SCHD": 0.0006, "SPYD": 0.0007, "SPAXX": 0.0042,
+  "SPY": 0.000945, "TLT": 0.0015, "GLD": 0.0040,
+  "SOXX": 0.0035, "XLI": 0.0009, "XLB": 0.0009, "VHT": 0.0009,
+  "VBR": 0.0007, "AVUV": 0.0025,
+};
+const ER_FLAG_THRESHOLD = 0.0020;
+
+function computeFeeDrag(marketValue: number, ticker: string): ExpenseInfo {
+  const er = EXPENSE_RATIOS[ticker] ?? 0;
+  const annualFee = marketValue * er;
+  return {
+    er,
+    erFormatted: (er * 100).toFixed(3) + "%",
+    annualFee: Math.round(annualFee * 100) / 100,
+    flagged: er > ER_FLAG_THRESHOLD && er > 0,
+  };
+}
+
+function getCachedPrice(ticker: string): number | null {
   try {
-    const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${API_KEY}&datatype=json`;
-    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) return null;
-
-    const data = await res.json();
-    const q = data["Global Quote"];
-    if (!q || !q["05. price"]) return null;
-
-    const price = parseFloat(q["05. price"]);
-    const change = parseFloat(q["09. change"]);
-    const changePercent = parseFloat(q["10. change percent"]?.replace("%", "")) || 0;
-
-    let signal: "BULL" | "BEAR" | "NEUTRAL" = "NEUTRAL";
-    if (changePercent > 0.5) signal = "BULL";
-    else if (changePercent < -0.5) signal = "BEAR";
-
-    return { symbol, price, change, changePercent, signal };
-  } catch {
-    return null;
-  }
+    if (fs.existsSync(MARKETBOT_CACHE)) {
+      const cache = JSON.parse(fs.readFileSync(MARKETBOT_CACHE, "utf8"));
+      return cache[ticker]?.price ?? null;
+    }
+  } catch { /* non-fatal */ }
+  return null;
 }
 
-// Fallback mock data for when Alpha Vantage is unavailable
-const MOCK_QUOTES: Record<string, StockQuote> = {
-  NVDA:  { symbol: "NVDA",  price: 198.45, change: -1.12, changePercent: -0.56, signal: "BEAR" as const },
-  SMH:   { symbol: "SMH",   price: 509.82, change: 15.40, changePercent: 3.12,  signal: "BULL" as const },
-  SCHG:  { symbol: "SCHG",  price: 33.14,  change: 0.28,  changePercent: 0.85,  signal: "BULL" as const },
-  QQQ:   { symbol: "QQQ",   price: 674.15, change: -5.20, changePercent: -0.77, signal: "BEAR" as const },
-  SCHD:  { symbol: "SCHD",  price: 31.86,  change: 0.12,  changePercent: 0.38,  signal: "NEUTRAL" as const },
-  VXUS:  { symbol: "VXUS",  price: 82.97,  change: 0.55,  changePercent: 0.67,  signal: "BULL" as const },
-  VOOG:  { symbol: "VOOG",  price: 78.46,  change: 0.92,  changePercent: 1.19,  signal: "BULL" as const },
-  VTI:   { symbol: "VTI",   price: 260.00, change: 1.20,  changePercent: 0.46,  signal: "BULL" as const },
-  VOO:   { symbol: "VOO",   price: 450.00, change: 2.10,  changePercent: 0.47,  signal: "BULL" as const },
-  SPYD:  { symbol: "SPYD",  price: 45.00,  change: 0.30,  changePercent: 0.67,  signal: "BULL" as const },
-  ASTS:  { symbol: "ASTS",  price: 10.00,  change: -0.50, changePercent: -4.76, signal: "BEAR" as const },
+// Fallback prices (from USER.md May 9 snapshot — used only when MarketBot cache is unavailable)
+const FALLBACK_PRICES: Record<string, { price: number; changePercent: number }> = {
+  NVDA: { price: 215.20, changePercent: 1.77 },
+  SMH:  { price: 566.54, changePercent: 4.90 },
+  QQQ:  { price: 711.23, changePercent: 2.30 },
+  VTI:  { price: 362.87, changePercent: 1.17 },
+  VOO:  { price: 678.04, changePercent: 1.12 },
+  SCHG: { price: 34.12,  changePercent: 0.85 },
+  XLE:  { price: 55.70,  changePercent: -0.13 },
+  XLV:  { price: 143.49, changePercent: -0.14 },
+  VXUS: { price: 85.43,  changePercent: 0.67 },
+  SCHD: { price: 31.62,  changePercent: 0.38 },
+  SPYD: { price: 46.69,  changePercent: 0.67 },
+  AMGN: { price: 331.70, changePercent: 0.95 },
+  ASTS: { price: 75.05,  changePercent: -3.81 },
 };
 
-const TICKERS = ["NVDA", "SMH", "SCHG", "QQQ", "SCHD", "VXUS", "VOOG", "VTI", "VOO", "SPYD", "ASTS"];
+// Core portfolio tickers tracked
+const PORTFOLIO_TICKERS = ["NVDA", "VTI", "QQQ", "VOO", "SCHG", "XLE", "SMH", "XLV", "VXUS", "SCHD", "AMGN", "SPYD", "ASTS"];
+const MARKET_TICKERS = ["NVDA", "SMH", "SCHG", "QQQ", "VTI", "VOO", "XLE", "XLV"];
 
 export async function GET() {
   try {
+    // ── Market Signal Quotes ──
     const quotes: StockQuote[] = [];
     let liveCount = 0;
 
-    for (const ticker of TICKERS) {
-      const quote = await fetchAlphaVantageQuote(ticker);
-      if (quote) {
-        quotes.push(quote);
+    for (const ticker of MARKET_TICKERS) {
+      const cached = getCachedPrice(ticker);
+      const fallback = FALLBACK_PRICES[ticker];
+      let price: number;
+      let changePercent: number;
+      let source: "live" | "cached" | "fallback";
+
+      if (cached) {
+        price = cached;
+        changePercent = fallback?.changePercent ?? 0;
+        source = "live";
         liveCount++;
+      } else if (fallback) {
+        price = fallback.price;
+        changePercent = fallback.changePercent;
+        source = "fallback";
       } else {
-        // Use mock with tiny random variation
-        const mock = MOCK_QUOTES[ticker];
-        if (mock) {
-          quotes.push({
-            ...mock,
-            price: +(mock.price * (1 + (Math.random() - 0.5) * 0.002)).toFixed(2),
+        continue;
+      }
+
+      let signal: "BULL" | "BEAR" | "NEUTRAL" = "NEUTRAL";
+      if (changePercent > 0.5) signal = "BULL";
+      else if (changePercent < -0.5) signal = "BEAR";
+
+      quotes.push({
+        symbol: ticker,
+        price,
+        change: (price * changePercent) / 100,
+        changePercent,
+        signal,
+        source,
+      });
+    }
+
+    // ── Portfolio Positions with Expense Ratios ──
+    let portfolio: PortfolioPosition[] = [];
+    try {
+      if (fs.existsSync(PORTFOLIO_FILE)) {
+        const pf = JSON.parse(fs.readFileSync(PORTFOLIO_FILE, "utf8"));
+        const positions = pf.positions ?? {};
+        let totalValue = 0;
+
+        // Calculate total first
+        for (const [ticker, data] of Object.entries(positions)) {
+          if (ticker === "SPAXX") continue; // cash, exclude from ER calc
+          const shares = (data as any).shares ?? 0;
+          const price = FALLBACK_PRICES[ticker]?.price ?? 0;
+          totalValue += shares * price;
+        }
+
+        for (const [ticker, data] of Object.entries(positions)) {
+          const shares = (data as any).shares ?? 0;
+          const price = FALLBACK_PRICES[ticker]?.price ?? 0;
+          const marketValue = shares * price;
+          const dayChangePercent = FALLBACK_PRICES[ticker]?.changePercent ?? 0;
+          const expense = EXPENSE_RATIOS[ticker] ? computeFeeDrag(marketValue, ticker) : undefined;
+
+          portfolio.push({
+            ticker,
+            shares,
+            marketValue,
+            weight: totalValue > 0 ? (marketValue / totalValue) * 100 : 0,
+            currentPrice: price,
+            dayChangePercent,
+            expense,
           });
         }
+
+        // Sort by weight descending
+        portfolio.sort((a, b) => b.weight - a.weight);
       }
-    }
+    } catch { /* non-fatal */ }
 
     return NextResponse.json({
       quotes,
+      portfolio,
       timestamp: new Date().toISOString(),
-      source: liveCount > 0 ? "alphavantage" : "mock",
-      liveCount,
+      source: liveCount > 0 ? "marketbot_live" : "fallback",
     });
   } catch (error) {
     console.error("Market signal error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch market data", quotes: [] },
+      { error: "Failed to fetch market data", quotes: [], portfolio: [] },
       { status: 500 }
     );
   }

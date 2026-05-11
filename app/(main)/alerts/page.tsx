@@ -16,6 +16,8 @@ import {
   CheckCircle,
   Loader2,
   CheckCheck,
+  Cpu,
+  CircleDot,
 } from "lucide-react";
 
 interface Alert {
@@ -43,7 +45,25 @@ interface Idea {
   complexity_index: number;
 }
 
-type Tab = "logs" | "ideas";
+interface BuildTask {
+  agent: string;
+  name: string;
+  status: "pending" | "active" | "done" | "skipped";
+}
+
+interface Build {
+  build_id: string;
+  name: string;
+  trend: string;
+  frustration_score: number;
+  commercial_intent: number;
+  status: string;
+  status_pct: number;
+  started_at: string;
+  tasks: BuildTask[];
+}
+
+type Tab = "logs" | "ideas" | "production";
 
 function severityIcon(severity: string) {
   if (severity === "critical") return <AlertTriangle className="w-4 h-4 text-red-400" />;
@@ -58,9 +78,17 @@ function severityColor(severity: string) {
 }
 
 function formatTimestamp(ts: string) {
+  // Backend already sends EDT strings like "05/03/2026 19:21:04 EDT"
+  // Return as-is if already in readable format (avoids double-conversion)
+  if (!ts || ts.includes("EDT") || ts.includes("EST")) return ts;
   try {
     const d = new Date(ts);
-    return d.toISOString().replace("T", " ").slice(0, 19) + " UTC";
+    return d.toLocaleString("en-US", {
+      timeZone: "America/New_York",
+      year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", second: "2-digit",
+      hour12: false,
+    }).replace("/", "-").replace("/", "-") + " EDT";
   } catch {
     return ts;
   }
@@ -95,6 +123,11 @@ function CyberGridCard({ alert, index }: { alert: Alert; index: number }) {
             [{alert.agent}] [{alert.status_code}]
             {alert.model && <span className="text-violet/60 ml-1">[Model: {alert.model}]</span>}
           </Badge>
+          {alert.grouped && alert.count && alert.count >= 2 && (
+            <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-violet/20 border border-violet/30 text-violet/90 font-mono text-xs font-semibold shadow-sm">
+              ×{alert.count}
+            </span>
+          )}
         </div>
         <p className="text-sm text-text-primary leading-relaxed">{alert.message}</p>
       </div>
@@ -196,9 +229,15 @@ function IdeaCard({
       <p className="text-xs text-text-secondary leading-relaxed">{idea.description}</p>
       <div className="mt-3 text-xs font-mono text-text-muted">
         {idea.proposed_at
-          ? new Date(idea.proposed_at).toISOString().replace("T", " ").slice(0, 19) +
-            " UTC"
-          : ""}
+          ? (idea.proposed_at.includes("EDT") || idea.proposed_at.includes("EST")
+              ? idea.proposed_at
+              : new Date(idea.proposed_at).toLocaleString("en-US", {
+                  timeZone: "America/New_York",
+                  year: "numeric", month: "2-digit", day: "2-digit",
+                  hour: "2-digit", minute: "2-digit", second: "2-digit",
+                  hour12: false,
+                }).replace("/", "-").replace("/", "-") + " EDT")
+          : "—"}
       </div>
     </motion.div>
   );
@@ -208,6 +247,7 @@ export default function AlertsPage() {
   const [tab, setTab] = useState<Tab>("logs");
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [ideas, setIdeas] = useState<Idea[]>([]);
+  const [build, setBuild] = useState<Build | null>(null);
   const [loading, setLoading] = useState(true);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [approvedId, setApprovedId] = useState<string | null>(null);
@@ -221,6 +261,7 @@ export default function AlertsPage() {
       .then((data) => {
         setAlerts(data.alerts ?? []);
         setIdeas(data.ideas ?? []);
+        setBuild(data.build ?? null);
         setLoading(false);
         prevCriticalCount.current = (data.alerts ?? []).filter(
           (a: Alert) => a.severity === "critical"
@@ -359,6 +400,20 @@ export default function AlertsPage() {
             {ideas.length}
           </Badge>
         </button>
+        <button
+          onClick={() => setTab("production")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            tab === "production"
+              ? "bg-amber text-obsidian"
+              : "text-text-secondary hover:text-text-primary"
+          }`}
+        >
+          <Cpu className="w-4 h-4" />
+          ⚡ PRODUCTION
+          <Badge variant="secondary" className="ml-1 bg-obsidian text-text-muted font-mono">
+            {build ? "LIVE" : "OFF"}
+          </Badge>
+        </button>
       </div>
 
       <Separator className="mb-8 border-border/50" />
@@ -391,6 +446,18 @@ export default function AlertsPage() {
           </motion.div>
         )}
 
+        {tab === "production" && (
+          <motion.div
+            key="production"
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ProductionTab build={build} loading={loading} />
+          </motion.div>
+        )}
+
         {tab === "ideas" && (
           <motion.div
             key="ideas"
@@ -410,6 +477,117 @@ export default function AlertsPage() {
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function ProductionTab({ build, loading }: { build: Build | null; loading: boolean }) {
+  if (loading) {
+    return (
+      <div className="text-center py-12 text-text-muted font-mono text-sm">
+        Connecting to build pipeline...
+      </div>
+    );
+  }
+
+  if (!build) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <div className="w-16 h-16 rounded-2xl border border-amber/20 bg-amber/5 flex items-center justify-center">
+          <CircleDot className="w-8 h-8 text-amber/40" />
+        </div>
+        <div className="text-center">
+          <p className="text-text-muted font-mono text-sm">PRODUCTION DORMANT</p>
+          <p className="text-text-muted/60 text-xs mt-1">
+            Live Build Card activates when TrendScout fires at 10 AM ET
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const pct = build.status_pct ?? 0;
+  const barColor = pct === 100 ? "bg-moss" : "bg-amber";
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-3 p-4 rounded-xl border border-amber/30 bg-amber/5">
+        <div className="w-3 h-3 rounded-full bg-amber animate-pulse" />
+        <span className="font-mono text-xs text-amber/80">⚡ ACTIVE BUILD</span>
+        <ChevronRight className="w-4 h-4 text-text-muted" />
+        <span className="font-mono text-sm text-text-primary">{build.name}</span>
+      </div>
+
+      {/* Build ID + Scores */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="p-4 rounded-xl border border-border bg-obsidian-light/60">
+          <p className="text-xs font-mono text-text-muted mb-1">BUILD ID</p>
+          <p className="font-mono text-xs text-moss/80">{build.build_id}</p>
+        </div>
+        <div className="p-4 rounded-xl border border-border bg-obsidian-light/60">
+          <p className="text-xs font-mono text-text-muted mb-1">FRUSTRATION</p>
+          <p className="font-mono text-lg text-amber font-bold">{build.frustration_score}/10</p>
+        </div>
+        <div className="p-4 rounded-xl border border-border bg-obsidian-light/60">
+          <p className="text-xs font-mono text-text-muted mb-1">COMMERCIAL INTENT</p>
+          <p className="font-mono text-lg text-violet font-bold">{build.commercial_intent}/10</p>
+        </div>
+      </div>
+
+      {/* Status Bar */}
+      <div className="space-y-2">
+        <div className="flex justify-between text-xs font-mono">
+          <span className="text-text-secondary">{build.status?.toUpperCase()}</span>
+          <span className="text-amber">{pct}%</span>
+        </div>
+        <div className="h-2 rounded-full bg-obsidian-light border border-border overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-700 ${barColor}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Task Checklist */}
+      <div className="space-y-2">
+        <p className="text-xs font-mono text-text-muted mb-3">SUB-TASKS</p>
+        {build.tasks.map((task, i) => (
+          <div key={i} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-obsidian-light/40">
+            <span className="w-5 flex items-center justify-center">
+              {task.status === "done" && <CheckCircle className="w-4 h-4 text-moss" />}
+              {task.status === "active" && <Loader2 className="w-4 h-4 text-amber animate-spin" />}
+              {task.status === "pending" && <CircleDot className="w-4 h-4 text-text-muted/40" />}
+              {task.status === "skipped" && <span className="text-text-muted/40 text-xs">—</span>}
+            </span>
+            <span className={`text-sm font-mono ${
+              task.status === "done" ? "text-moss/80 line-through" :
+              task.status === "active" ? "text-amber" :
+              "text-text-muted"
+            }`}>
+              [{task.agent}] {task.name}
+            </span>
+            {task.status === "active" && (
+              <span className="ml-auto text-xs font-mono text-amber/60 animate-pulse">RUNNING</span>
+            )}
+            {task.status === "done" && (
+              <span className="ml-auto text-xs font-mono text-moss/60">DONE</span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Trend context */}
+      {build.trend && (
+        <div className="p-4 rounded-xl border border-violet/20 bg-violet/5">
+          <p className="text-xs font-mono text-violet/60 mb-1">TREND</p>
+          <p className="text-sm text-text-secondary">{build.trend}</p>
+        </div>
+      )}
+
+      <div className="text-xs font-mono text-text-muted/60">
+        Started: {build.started_at}
+      </div>
     </div>
   );
 }

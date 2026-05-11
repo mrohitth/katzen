@@ -1,8 +1,27 @@
 import { NextResponse } from "next/server";
-import { readFileSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
 
 const MANIFEST_PATH = join(process.cwd(), "src/data/manifest.json");
+const MAX_ALERTS = 50;   // B log: accumulate up to 50 alerts before archiving
+
+// EDT helpers (America/New_York)
+function tsEdt(): string {
+  return new Date().toLocaleString("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    hour12: false,  // 24-hour
+  }).replace(/,/g, "") + " EDT";
+}
+function nowEdt(): string {
+  return new Date().toLocaleString("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    hour12: true,
+  }).replace(/,/g, "") + " EDT";
+}
 
 const VALID_IDEA_FIELDS = new Set([
   "id", "cycle", "title", "description", "status",
@@ -12,6 +31,9 @@ const VALID_ALERT_FIELDS = new Set([
   "id", "timestamp", "agent", "status_code", "type", "severity",
   "message", "source", "model", "grouped", "count"
 ]);
+
+const VALID_BUILD_TASK_FIELDS = new Set(["agent", "name", "status"]); // status: pending|active|done|skipped
+const VALID_BUILD_FIELDS = new Set(["build_id", "name", "status", "status_pct", "tasks", "trend", "frustration_score", "commercial_intent", "started_at"]);
 
 const ALERT_MODEL_MAP: Record<string, string> = {
   MITTY: "gemini/gemini-2.5-flash",
@@ -62,6 +84,7 @@ export async function GET() {
     return NextResponse.json({
       alerts: groupedAlerts,
       ideas: data.ideas_backlog ?? [],
+      build: data.build ?? null,
       schema_version: data.schema_version,
       last_updated: data.last_updated,
       system_capabilities: data.system_capabilities ?? {},
@@ -84,7 +107,7 @@ export async function PATCH(request: Request) {
       const agent = body.agent ?? body.source ?? "SYSTEM";
       const entry: Record<string, unknown> = {
         id: `alert-${Date.now()}`,
-        timestamp: new Date().toISOString(),
+        timestamp: tsEdt(),
         agent,
         status_code: body.status_code ?? "OK",
         type: body.type ?? "system",
@@ -106,11 +129,11 @@ export async function PATCH(request: Request) {
       manifest.alerts_history = manifest.alerts_history ?? [];
       manifest.alerts_history.unshift(entry as typeof manifest.alerts_history[number]);
 
-      if (manifest.alerts_history.length > 100) {
-        const archive = manifest.alerts_history.slice(50);
-        manifest.alerts_history = manifest.alerts_history.slice(0, 50);
+      // B log: archive only when over MAX_ALERTS, keep newest MAX_ALERTS
+      if (manifest.alerts_history.length > MAX_ALERTS) {
+        const archive = manifest.alerts_history.slice(MAX_ALERTS);
+        manifest.alerts_history = manifest.alerts_history.slice(0, MAX_ALERTS);
         try {
-          const { writeFileSync, mkdirSync, existsSync } = await import("fs");
           const archiveDir = "/home/mathew/.openclaw/workspace/wiki/logs/archive";
           if (!existsSync(archiveDir)) mkdirSync(archiveDir, { recursive: true });
           const archivePath = `${archiveDir}/alerts_May2026.md`;
@@ -129,7 +152,7 @@ export async function PATCH(request: Request) {
         description: body.description ?? "",
         status: "proposed",
         complexity_index: body.complexity_index ?? 3,
-        proposed_at: new Date().toISOString(),
+        proposed_at: tsEdt(),
         votes: 0,
       };
 
@@ -147,6 +170,43 @@ export async function PATCH(request: Request) {
     } else if (body.action === "vote_idea") {
       const idea = manifest.ideas_backlog?.find((i: any) => i.id === body.id);
       if (idea) idea.votes = (idea.votes ?? 0) + 1;
+    } else if (body.action === "start_build") {
+      const build = {
+        build_id: `build-${Date.now()}`,
+        name: body.name ?? "Unnamed Build",
+        trend: body.trend ?? "",
+        frustration_score: body.frustration_score ?? 0,
+        commercial_intent: body.commercial_intent ?? 0,
+        status: "drafting",
+        status_pct: 20,
+        started_at: tsEdt(),
+        tasks: [
+          { agent: "BITTY", name: "Naming Pass", status: "done" },
+          { agent: "WITTY", name: "Market Brief", status: "done" },
+          { agent: "TATTY", name: "Content Generation", status: "active" },
+          { agent: "BITTY", name: "Scrub Pass", status: "pending" },
+          { agent: "KITTY", name: "Final Polish", status: "pending" },
+        ],
+      };
+      manifest.build = build;
+
+    } else if (body.action === "update_build_task") {
+      if (!manifest.build) {
+        return NextResponse.json({ error: "NO_ACTIVE_BUILD" }, { status: 400 });
+      }
+      const task = manifest.build.tasks?.find((t: any) => t.name === body.task_name);
+      if (task) {
+        task.status = body.status; // pending|active|done|skipped
+        // Recalc pct
+        const done = manifest.build.tasks.filter((t: any) => t.status === "done" || t.status === "skipped").length;
+        manifest.build.status_pct = Math.round((done / manifest.build.tasks.length) * 100);
+        if (body.status === "done") manifest.build.status = "polishing";
+        if (done === manifest.build.tasks.length) { manifest.build.status = "complete"; manifest.build.status_pct = 100; }
+      }
+
+    } else if (body.action === "end_build") {
+      delete manifest.build;
+
     } else if (body.action === "update_idea_status") {
       const VALID_STATUSES = new Set(["proposed", "approved", "rejected", "implemented"]);
       const idea = manifest.ideas_backlog?.find((i: any) => i.id === body.id);
@@ -162,10 +222,8 @@ export async function PATCH(request: Request) {
       idea.status = body.status;
     }
 
-    manifest.last_updated = new Date().toISOString();
+    manifest.last_updated = tsEdt();
 
-    readFileSync(MANIFEST_PATH, "utf-8");
-    const { writeFileSync } = await import("fs");
     writeFileSync(MANIFEST_PATH, JSON.stringify(manifest, null, 2));
 
     const grouped = groupAlerts(manifest.alerts_history ?? []);
@@ -173,6 +231,7 @@ export async function PATCH(request: Request) {
     return NextResponse.json({
       alerts: grouped,
       ideas: manifest.ideas_backlog,
+      build: manifest.build ?? null,
       schema_version: manifest.schema_version,
       last_updated: manifest.last_updated,
       system_capabilities: manifest.system_capabilities ?? {},
@@ -184,7 +243,9 @@ export async function PATCH(request: Request) {
 }
 
 /**
- * Group repetitive entries: consecutive same [agent]+[status_code] ≥ 5 → summary card
+ * Smart Alert Aggregation — roll up consecutive same [agent]+[status_code] pairs.
+ * count >= 2 → single card with count=N badge.
+ * Shows most-recent timestamp of the rolled-up batch.
  */
 function groupAlerts(alerts: any[]): any[] {
   const result: any[] = [];
@@ -194,29 +255,32 @@ function groupAlerts(alerts: any[]): any[] {
     const current = alerts[i];
     const combo = `${current.agent}|${current.status_code}`;
     let count = 1;
+    let lastTs = current.timestamp;
 
     let j = i + 1;
     while (j < alerts.length && `${alerts[j].agent}|${alerts[j].status_code}` === combo) {
       count++;
+      lastTs = alerts[j].timestamp;   // keep newest timestamp
       j++;
     }
 
-    if (count >= 5) {
+    if (count >= 2) {
+      // Aggregation card — roll up all count occurrences into one
       result.push({
-        id: `group-${combo}-${count}`,
-        timestamp: current.timestamp,
+        id: `rollup-${combo}-${count}`,
+        timestamp: lastTs,           // most recent
         agent: current.agent,
         status_code: current.status_code,
         type: current.type ?? "system",
         severity: current.severity ?? "info",
-        message: `${count} ${current.agent} ${current.status_code} events — last 24h`,
+        message: current.message,
         source: current.source ?? current.agent,
         model: current.model ?? getModelForAgent(current.agent),
         grouped: true,
-        count,
+        count,                       // → ×N badge in frontend
       });
     } else {
-      for (let k = i; k < j; k++) result.push({ ...alerts[k], grouped: false });
+      result.push({ ...current, grouped: false });
     }
 
     i = j;
